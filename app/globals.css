@@ -290,9 +290,12 @@ body {
     padding: 0;
     border: none;
     color: var(--ink);
-    /* Flat: the glow on this screen belongs to the record and is drawn with it,
-       so a second one behind would be two light sources for one lamp. */
-    background: #150e07;
+    background: radial-gradient(
+      120% 80% at 50% 30%,
+      oklch(0.22 0.02 70) 0%,
+      oklch(0.12 0.015 65) 45%,
+      #060504 100%
+    );
 
     opacity: 0;
     transition:
@@ -316,14 +319,6 @@ body {
   /* The dialog covers the viewport, so this only shows through its own fade. */
   .welcome::backdrop {
     background: #060504;
-  }
-
-  /* 12rpm. transform-box resolves the origin against the viewBox, so the disc
-     turns about its spindle rather than the corner of the glow's canvas. */
-  .record-face {
-    transform-box: view-box;
-    transform-origin: 227.5px 232.5px;
-    animation: discSpin 5s linear infinite;
   }
 
   .field {
@@ -436,8 +431,18 @@ body {
   }
 }
 
-/* The turn the record keeps -- linear and endless, because a record that stops
-   dead reads as a picture of a record. */
+/* The platter coming up to speed: a fast turn and a half, easing out. Runs once. */
+@keyframes discSpinUp {
+  from {
+    rotate: 0deg;
+  }
+  to {
+    rotate: 540deg;
+  }
+}
+
+/* The turn it keeps after. On its own element so the two rotations compose --
+   on one element the later animation would simply replace the earlier. */
 @keyframes discSpin {
   from {
     rotate: 0deg;
