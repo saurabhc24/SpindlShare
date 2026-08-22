@@ -113,8 +113,13 @@ body {
   .wordmark {
     font-family: var(--font-wordmark), system-ui, sans-serif;
     font-weight: 500;
-    font-size: 17px;
+    font-size: 16px;
     letter-spacing: 0.025em;
+  }
+  @media (min-width: 640px) {
+    .wordmark {
+      font-size: 17px;
+    }
   }
 
   /* The sign-in card's backdrop, as a class, for a page that wants the same

@@ -79,7 +79,7 @@ export default async function DashboardPage(props: PageProps<"/dashboard">) {
 
       {/* Drawn on a phone: wider than that the column centres rather than
           stretching the cards into letterboxes. */}
-      <div className="mx-auto flex w-full max-w-[430px] flex-1 flex-col justify-between gap-10 px-6 py-8">
+      <div className="mx-auto flex w-full max-w-[430px] flex-1 flex-col justify-between gap-10 px-6 pt-8 pb-6">
         <header className="flex w-full items-center justify-between gap-4">
           {/* The door to the public page. Drawn as identity rather than a link,
               so the affordance is held back to a hover. */}
@@ -116,7 +116,7 @@ export default async function DashboardPage(props: PageProps<"/dashboard">) {
           >
             <button
               type="submit"
-              className="cursor-pointer text-sm font-medium whitespace-nowrap text-white transition-colors hover:text-accent"
+              className="cursor-pointer text-sm font-medium whitespace-nowrap text-[#c8c8c8] transition-colors hover:text-accent"
             >
               Sign out
             </button>
@@ -130,7 +130,7 @@ export default async function DashboardPage(props: PageProps<"/dashboard">) {
             <h1 className="heading text-[clamp(18px,6vw,24px)]">
               Connect to your music service
             </h1>
-            <p className="px-3 text-sm">
+            <p className="px-3 text-sm text-[#c8c8c8]">
               Link Spotify or Youtube Music to import your playlists and start
               building your page
             </p>
@@ -155,7 +155,7 @@ export default async function DashboardPage(props: PageProps<"/dashboard">) {
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={icon} alt="" width={width} height={height} />
                 </span>
-                <span className="flex-1 text-sm text-white">{blurb}</span>
+                <span className="flex-1 text-sm text-[#c8c8c8]">{blurb}</span>
               </a>
             ))}
 
@@ -164,14 +164,16 @@ export default async function DashboardPage(props: PageProps<"/dashboard">) {
             <div className="flex w-full flex-col items-center gap-3 px-6 py-4">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src="/Add_link_vector.svg" alt="" width={43} height={43} />
-              <p className="w-[243px] text-center text-sm text-[#737373]">
+              <p className="w-[243px] text-center text-sm text-[#c8c8c8]">
                 Paste public Spotify or YouTube music link to import it.
               </p>
             </div>
           </div>
         </main>
 
-        <footer className="flex w-full items-center justify-center p-1">
+        {/* No padding of its own: pb-6 above is what puts the wordmark 24px off
+            the bottom edge, and 4px here would quietly make it 28. */}
+        <footer className="flex w-full items-center justify-center">
           <span className="wordmark text-white">SpindlShare</span>
         </footer>
       </div>

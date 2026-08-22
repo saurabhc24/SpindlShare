@@ -128,7 +128,7 @@ export function WelcomeMoment({
         {/* At the foot rather than in the centred stack, so it reads as the
             product signing the moment rather than another line of the card. */}
         <span
-          className="wordmark absolute bottom-[50px]"
+          className="wordmark absolute bottom-6"
           style={{
             animation: "riseIn 620ms cubic-bezier(0.22,1,0.36,1) 900ms both",
           }}
