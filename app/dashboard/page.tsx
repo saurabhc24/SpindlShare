@@ -4,18 +4,11 @@ import { signOut } from "@/lib/auth";
 import { requireProfile } from "@/lib/dal";
 import { providerSlug, type ConnectableProvider } from "@/lib/providers";
 
+import { WelcomeMoment } from "./welcome-moment";
+
 /**
  * The first screen of the signed-in app: pick a music service to import from.
- *
- * Built as a whole viewport rather than a panel inside a shell, which is why it
- * carries its own header and wordmark instead of inheriting them from a
- * dashboard layout. The design pins one to the top edge and one to the bottom
- * with the invitation floating between them, and `justify-between` on a column
- * that fills the screen is what does that.
- *
- * The scene gradient every other route sits on is painted over here on purpose:
- * the design asks for one flat warm dark, and a radial highlight rising behind
- * these cards reads as a smudge rather than as depth.
+ * A whole viewport, so it carries its own header and wordmark rather than a shell's.
  */
 
 type Service = {
@@ -40,27 +33,22 @@ const SERVICES: Service[] = [
     icon: "/YouTube_icon.svg",
     width: 39,
     height: 27,
-    // Says YouTube rather than YouTube Music because there is no YouTube Music
-    // API -- those playlists simply surface through the YouTube one.
+    // No YouTube Music API -- those playlists surface through the YouTube one.
     blurb: "Bring in your YouTube playlists, YouTube Music ones included.",
   },
 ];
 
 /**
- * Where a round trip through a provider can land. Both connect routes redirect
- * back here now, so this is the only place these outcomes get explained -- and
- * the note is the one thing on the screen the design has no box for, which is
- * why it borrows the app's existing `.note` treatment rather than inventing a
- * shape of its own.
+ * Where a round trip through a provider can land. The design has no box for this,
+ * so it borrows the app's `.note` rather than inventing a shape.
  */
 const ERROR_MESSAGES: Record<string, string> = {
   denied: "You cancelled the connection. Nothing was changed.",
   invalid_state: "That connection link expired. Please try again.",
   missing_code: "The service didn't return an authorization code. Try again.",
   exchange_failed: "We couldn't complete the connection. Please try again.",
-  // The account linked fine; only the first playlist read failed. Saying
-  // "couldn't connect" here would send someone off to reconnect something that
-  // is already connected, which no amount of retrying can fix.
+  // The account linked fine; only the first playlist read failed. "Couldn't
+  // connect" would send someone to reconnect what is already connected.
   import_failed: "Connected, but we couldn't import your playlists yet.",
   not_configured:
     "This service isn't configured yet. Add its API credentials to your environment.",
@@ -74,16 +62,27 @@ export default async function DashboardPage(props: PageProps<"/dashboard">) {
   const errorKey = Array.isArray(rawError) ? rawError[0] : rawError;
   const errorMessage = errorKey ? ERROR_MESSAGES[errorKey] : null;
 
+  // Set by the username claim and only by it. The moment strips the flag as it
+  // opens, so a refresh lands on the plain screen.
+  const rawWelcome = searchParams.welcome;
+  const isNew =
+    (Array.isArray(rawWelcome) ? rawWelcome[0] : rawWelcome) === "1";
+
   return (
     <div className="flex flex-1 flex-col bg-[#150e07]">
-      {/* The design is drawn on a phone. On anything wider the column stops
-          growing and centres, so the cards keep the proportions they were drawn
-          with instead of stretching into letterboxes. */}
+      {isNew && (
+        <WelcomeMoment
+          displayName={profile.displayName || profile.username}
+          handle={profile.username}
+        />
+      )}
+
+      {/* Drawn on a phone: wider than that the column centres rather than
+          stretching the cards into letterboxes. */}
       <div className="mx-auto flex w-full max-w-[430px] flex-1 flex-col justify-between gap-10 px-6 py-8">
         <header className="flex w-full items-center justify-between gap-4">
-          {/* The avatar and handle are the door to the public page. The design
-              draws them as identity rather than as a link, so the affordance is
-              held back to a hover. */}
+          {/* The door to the public page. Drawn as identity rather than a link,
+              so the affordance is held back to a hover. */}
           <Link
             href={`/${profile.username}`}
             className="group flex min-w-0 items-center gap-2"
@@ -126,12 +125,8 @@ export default async function DashboardPage(props: PageProps<"/dashboard">) {
 
         <main className="flex w-full flex-col gap-9">
           <div className="flex flex-col items-center gap-3 text-center text-white">
-            {/* Sized to sit on one line, which is how the design reads it, and
-                given the column's full width to do it in -- at the drawn 24px
-                the sentence needs about 330px and there are 345 to spend, so
-                the inset the paragraph below wants would cost it the line.
-                Below the design's width the clamp shrinks it rather than
-                letting it wrap. */}
+            {/* One line, on the column's full width: at 24px it needs ~330px of
+                the 345 there are, so the paragraph's inset would cost the line. */}
             <h1 className="heading text-[clamp(18px,6vw,24px)]">
               Connect to your music service
             </h1>
@@ -149,10 +144,8 @@ export default async function DashboardPage(props: PageProps<"/dashboard">) {
 
           <div className="flex w-full flex-col gap-6">
             {SERVICES.map(({ provider, icon, width, height, blurb }) => (
-              /* Straight to the OAuth route even when the provider has no
-                 credentials configured: that route already redirects back here
-                 saying so, which is a better answer than a card that quietly
-                 leads somewhere else. */
+              /* Straight to the OAuth route even unconfigured -- it redirects
+                 back here saying so, rather than the card leading elsewhere. */
               <a
                 key={provider}
                 href={`/api/connect/${providerSlug(provider)}`}
@@ -166,9 +159,8 @@ export default async function DashboardPage(props: PageProps<"/dashboard">) {
               </a>
             ))}
 
-            {/* The third way a playlist can arrive, for anything we cannot
-                authorize or that isn't yours. Quieter than the two cards
-                because it is the fallback rather than the invitation. */}
+            {/* The third way in, for anything we can't authorize. Quieter than
+                the cards because it is the fallback, not the invitation. */}
             <div className="flex w-full flex-col items-center gap-3 px-6 py-4">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src="/Add_link_vector.svg" alt="" width={43} height={43} />

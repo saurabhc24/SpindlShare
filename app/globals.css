@@ -108,10 +108,8 @@ body {
     letter-spacing: -0.01em;
   }
 
-  /* Size and tracking live here rather than at each use, so the footer signature
-     is one size across the app instead of whatever each page happened to reach
-     for. The landing page set the reference; a page that genuinely needs a
-     different one overrides with a text- utility, which still wins. */
+  /* Size lives here so the footer signature is one size everywhere. A page that
+     needs another overrides with a text- utility, which still wins. */
   .wordmark {
     font-family: var(--font-wordmark), system-ui, sans-serif;
     font-weight: 500;
@@ -292,12 +290,9 @@ body {
     padding: 0;
     border: none;
     color: var(--ink);
-    background: radial-gradient(
-      120% 80% at 50% 30%,
-      oklch(0.22 0.02 70) 0%,
-      oklch(0.12 0.015 65) 45%,
-      #060504 100%
-    );
+    /* Flat: the glow on this screen belongs to the record and is drawn with it,
+       so a second one behind would be two light sources for one lamp. */
+    background: #150e07;
 
     opacity: 0;
     transition:
@@ -308,6 +303,11 @@ body {
   .welcome[open] {
     opacity: 1;
   }
+  /* The dialog takes initial focus so the button doesn't. A ring round the whole
+     screen says nothing; the controls inside keep theirs. */
+  .welcome:focus {
+    outline: none;
+  }
   @starting-style {
     .welcome[open] {
       opacity: 0;
@@ -316,6 +316,14 @@ body {
   /* The dialog covers the viewport, so this only shows through its own fade. */
   .welcome::backdrop {
     background: #060504;
+  }
+
+  /* 12rpm. transform-box resolves the origin against the viewBox, so the disc
+     turns about its spindle rather than the corner of the glow's canvas. */
+  .record-face {
+    transform-box: view-box;
+    transform-origin: 227.5px 232.5px;
+    animation: discSpin 5s linear infinite;
   }
 
   .field {
@@ -428,22 +436,8 @@ body {
   }
 }
 
-/* The platter coming up to speed: a fast turn and a half, easing out. Runs once. */
-@keyframes discSpinUp {
-  from {
-    rotate: 0deg;
-  }
-  to {
-    rotate: 540deg;
-  }
-}
-
-/* And the turn it keeps once it is up to speed -- linear and endless, because a
-   record that stops dead reads as a picture of a record.
-
-   On its own element rather than alongside the spin-up: both animate `rotate`,
-   and two animations on one element don't add up, the later declaration simply
-   wins. Nested, the two rotations compose. */
+/* The turn the record keeps -- linear and endless, because a record that stops
+   dead reads as a picture of a record. */
 @keyframes discSpin {
   from {
     rotate: 0deg;
