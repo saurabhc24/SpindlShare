@@ -28,6 +28,9 @@
   --gold: linear-gradient(180deg, oklch(0.92 0.07 86), oklch(0.82 0.09 80));
   --gold-shadow: 0 10px 26px oklch(0.75 0.09 78 / 0.35);
 
+  /* Rows and controls on the playlist board, one step above --surface-flat. */
+  --surface-raised: #29231e;
+
   --panel: oklch(0.2 0.015 68 / 0.62);
   --panel-solid: oklch(0.18 0.015 66);
   --line: rgba(255, 255, 255, 0.09);
@@ -55,6 +58,7 @@
   --color-ink-dim: var(--ink-dim);
   --color-ink-faint: var(--ink-faint);
   --color-accent: var(--accent);
+  --color-surface-raised: var(--surface-raised);
   --font-sans: var(--font-manrope);
   --font-serif: var(--font-instrument-serif);
 }
