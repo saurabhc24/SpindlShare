@@ -188,7 +188,7 @@ export function Showcase({
           background:
             "radial-gradient(120% 80% at 50% -6%, oklch(0.24 0.02 70) 0%, oklch(0.16 0.015 65) 32%, oklch(0.09 0.01 60) 66%, #060504 100%)",
           fontFamily: "var(--font-manrope), sans-serif",
-          color: "oklch(0.94 0.01 85)",
+          color: "var(--ink-dim)",
           display: "flex",
           flexDirection: "column",
         }}
@@ -269,7 +269,7 @@ export function Showcase({
                     style={{
                       fontFamily: "var(--font-instrument-serif), serif",
                       fontSize: 26,
-                      color: "oklch(0.92 0.05 85)",
+                      color: "var(--ink)",
                       position: "relative",
                     }}
                   >
@@ -288,6 +288,7 @@ export function Showcase({
                 fontSize: 27,
                 lineHeight: 1,
                 margin: "0 0 3px",
+                color: "var(--ink)",
                 letterSpacing: "0.3px",
               }}
             >
@@ -299,10 +300,10 @@ export function Showcase({
                 alignItems: "center",
                 gap: 7,
                 fontSize: 12.5,
-                color: "oklch(0.72 0.03 82)",
+                color: "var(--ink-dim)",
               }}
             >
-              <span style={{ color: "oklch(0.86 0.08 82)" }}>{handle}</span>
+              <span style={{ color: "var(--accent)" }}>{handle}</span>
               <span
                 style={{
                   width: 3,
@@ -359,7 +360,7 @@ export function Showcase({
               margin: "-6px 20px 4px",
               fontSize: 12.5,
               lineHeight: 1.5,
-              color: "oklch(0.72 0.02 82)",
+              color: "var(--ink-dim)",
               flex: "0 0 auto",
             }}
           >
@@ -398,7 +399,7 @@ export function Showcase({
                 backdropFilter: "blur(8px)",
                 fontSize: 12.5,
                 fontWeight: 600,
-                color: "oklch(0.82 0.03 84)",
+                color: "var(--ink-dim)",
               }}
             >
               <span
@@ -441,7 +442,7 @@ export function Showcase({
                 fontFamily: "var(--font-manrope), sans-serif",
                 fontWeight: 700,
                 fontSize: 12.5,
-                color: "oklch(0.9 0.03 85)",
+                color: "var(--ink-dim)",
               }}
             >
               <span style={{ fontSize: 15, lineHeight: 1 }}>&lsaquo;</span> All
@@ -463,7 +464,7 @@ export function Showcase({
               fontWeight: 500,
               fontSize: 22,
               lineHeight: 1,
-              color: "oklch(0.95 0.01 85)",
+              color: "var(--ink)",
               pointerEvents: "none",
             }}
           >
@@ -627,7 +628,7 @@ export function Showcase({
                                     "var(--font-instrument-serif), serif",
                                   fontSize: 50,
                                   lineHeight: 0.9,
-                                  color: "rgba(255,255,255,0.92)",
+                                  color: "var(--ink)",
                                   textShadow: "0 2px 12px rgba(0,0,0,0.3)",
                                 }}
                               >
@@ -670,7 +671,7 @@ export function Showcase({
                                   style={{
                                     fontSize: 11,
                                     fontWeight: 700,
-                                    color: "rgba(255,255,255,0.95)",
+                                    color: "var(--ink-dim)",
                                     letterSpacing: "0.2px",
                                   }}
                                 >
@@ -761,7 +762,7 @@ export function Showcase({
                                 fontWeight: 500,
                                 fontSize: 19,
                                 lineHeight: 1.1,
-                                color: "oklch(0.95 0.01 85)",
+                                color: "var(--ink)",
                                 marginBottom: 5,
                               }}
                             >
@@ -792,7 +793,7 @@ export function Showcase({
                                   fontSize: 11,
                                   fontWeight: 600,
                                   letterSpacing: "0.3px",
-                                  color: "oklch(0.82 0.015 85)",
+                                  color: "var(--ink-dim)",
                                 }}
                               >
                                 {item.providerLabel}
@@ -856,7 +857,7 @@ export function Showcase({
                         fontFamily: "var(--font-ubuntu), system-ui, sans-serif",
                         fontWeight: 500,
                         fontSize: 16,
-                        color: "oklch(0.93 0.03 85)",
+                        color: "var(--ink)",
                       }}
                     >
                       {shelf.name}
@@ -865,7 +866,7 @@ export function Showcase({
                       style={{
                         fontSize: 11,
                         fontWeight: 600,
-                        color: "oklch(0.68 0.03 82)",
+                        color: "var(--ink-dim)",
                       }}
                     >
                       {shelf.items.length}
@@ -895,13 +896,13 @@ export function Showcase({
             gap: 9,
             padding: "12px 20px 18px",
             fontSize: 12,
-            color: "oklch(0.6 0.02 80)",
+            color: "var(--ink-dim)",
           }}
         >
-          <span aria-hidden="true" style={{ color: "oklch(0.5 0.015 78)" }}>
+          <span aria-hidden="true" style={{ color: "var(--ink-dim)" }}>
             🔗
           </span>
-          <span style={{ fontWeight: 600, color: "oklch(0.85 0.06 84)" }}>
+          <span style={{ fontWeight: 600, color: "var(--accent)" }}>
             {shareDisplay}
           </span>
         </footer>

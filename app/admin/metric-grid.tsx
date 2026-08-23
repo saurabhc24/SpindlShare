@@ -93,7 +93,7 @@ function Stat({
       <p className="truncate text-[11px] text-ink-dim sm:text-xs">{label}</p>
       <p
         className={`mt-0.5 font-semibold tabular-nums ${
-          muted ? "text-base text-ink-dim" : "text-lg sm:text-xl"
+          muted ? "text-base text-ink-dim" : "text-lg text-ink sm:text-xl"
         } ${tone === "warn" ? "text-[var(--warn)]" : ""}`}
       >
         {value.toLocaleString()}

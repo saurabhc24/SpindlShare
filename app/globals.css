@@ -19,10 +19,12 @@
     #060504 100%
   );
 
-  --ink: oklch(0.94 0.01 85);
-  --ink-dim: oklch(0.74 0.02 82);
-  --ink-faint: oklch(0.6 0.02 80);
-  --accent: oklch(0.86 0.08 82);
+  /* Two text colours, by role: white titles over grey body copy. --ink-faint
+     is kept as a name so call sites need not change, but it is the body grey. */
+  --ink: #ffffff;
+  --ink-dim: #c8c8c8;
+  --ink-faint: #c8c8c8;
+  --accent: #bda362;
   --gold: linear-gradient(180deg, oklch(0.92 0.07 86), oklch(0.82 0.09 80));
   --gold-shadow: 0 10px 26px oklch(0.75 0.09 78 / 0.35);
 
@@ -39,7 +41,7 @@
 
   --danger: oklch(0.7 0.16 25);
   --warn: oklch(0.82 0.11 75);
-  --ok: oklch(0.78 0.14 155);
+  --ok: #739d85;
 
   /* Kept so any `bg-background` / `text-foreground` still lands in the scene. */
   --background: var(--scene);
@@ -68,7 +70,7 @@ body {
   /* The room itself, applied once here rather than by every page. Fixed so a
      long dashboard scrolls through the gradient instead of tiling it. */
   background: var(--scene) var(--scene-gradient) fixed;
-  color: var(--ink);
+  color: var(--ink-dim);
   font-family: var(--font-manrope), system-ui, sans-serif;
   -webkit-tap-highlight-color: transparent;
 }
@@ -93,6 +95,7 @@ body {
     font-family: var(--font-ubuntu), system-ui, sans-serif;
     font-weight: 500;
     letter-spacing: -0.005em;
+    color: var(--ink);
   }
 
   /* Instrument Serif has no class any more. It survives on the public profile
@@ -106,6 +109,7 @@ body {
     font-family: var(--font-display), system-ui, sans-serif;
     font-weight: 500;
     letter-spacing: -0.01em;
+    color: var(--ink);
   }
 
   /* Size lives here so the footer signature is one size everywhere. A page that
@@ -115,6 +119,7 @@ body {
     font-weight: 500;
     font-size: 16px;
     letter-spacing: 0.025em;
+    color: var(--ink);
   }
   @media (min-width: 640px) {
     .wordmark {
@@ -294,7 +299,7 @@ body {
     margin: 0;
     padding: 0;
     border: none;
-    color: var(--ink);
+    color: var(--ink-dim);
     background: radial-gradient(
       120% 80% at 50% 30%,
       oklch(0.22 0.02 70) 0%,
@@ -338,7 +343,7 @@ body {
     transition: border-color 0.2s ease;
   }
   .field::placeholder {
-    color: oklch(0.5 0.015 78);
+    color: var(--ink-dim);
   }
   .field:focus {
     border-color: var(--accent);

@@ -103,7 +103,7 @@ export function WelcomeMoment({
             {displayName}
           </h2>
           <p
-            className="mt-8 text-sm text-ink"
+            className="mt-8 text-sm text-ink-dim"
             style={{
               animation: "riseIn 620ms cubic-bezier(0.22,1,0.36,1) 420ms both",
             }}

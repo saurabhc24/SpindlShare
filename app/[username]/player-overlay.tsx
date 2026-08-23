@@ -236,7 +236,7 @@ export function PlayerOverlay({
                       alignItems: "center",
                       justifyContent: "center",
                       fontSize: LABEL * 0.45,
-                      color: "rgba(255,255,255,0.92)",
+                      color: "var(--ink)",
                     }}
                   >
                     {item?.title.charAt(0).toUpperCase()}

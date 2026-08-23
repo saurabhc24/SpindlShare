@@ -44,13 +44,13 @@ export default async function OpengraphImage({
           flexDirection: "column",
           justifyContent: "space-between",
           background: "#09090b",
-          color: "#fafafa",
+          color: "#c8c8c8",
           padding: 72,
           fontFamily: "sans-serif",
         }}
       >
         <div style={{ display: "flex", flexDirection: "column" }}>
-          <div style={{ display: "flex", fontSize: 26, color: "#a1a1aa" }}>
+          <div style={{ display: "flex", fontSize: 26, color: "#c8c8c8" }}>
             @{data?.profile.username ?? username}
           </div>
           <div
@@ -58,6 +58,7 @@ export default async function OpengraphImage({
               display: "flex",
               fontSize: 68,
               fontWeight: 600,
+              color: "#ffffff",
               marginTop: 12,
               letterSpacing: "-0.02em",
             }}
@@ -68,7 +69,7 @@ export default async function OpengraphImage({
             style={{
               display: "flex",
               fontSize: 30,
-              color: "#a1a1aa",
+              color: "#c8c8c8",
               marginTop: 16,
             }}
           >
@@ -92,7 +93,7 @@ export default async function OpengraphImage({
               />
             ))}
           </div>
-          <div style={{ display: "flex", fontSize: 24, color: "#71717a" }}>
+          <div style={{ display: "flex", fontSize: 24, color: "#ffffff" }}>
             SpindlShare
           </div>
         </div>

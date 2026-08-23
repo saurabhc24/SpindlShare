@@ -152,7 +152,7 @@ export default async function PublicProfilePage(
           background:
             "radial-gradient(120% 80% at 50% -6%, oklch(0.24 0.02 70) 0%, oklch(0.16 0.015 65) 32%, oklch(0.09 0.01 60) 66%, #060504 100%)",
           fontFamily: "var(--font-manrope), sans-serif",
-          color: "oklch(0.94 0.01 85)",
+          color: "var(--ink-dim)",
         }}
       >
         <div
@@ -193,7 +193,7 @@ export default async function PublicProfilePage(
                 style={{
                   fontFamily: "var(--font-instrument-serif), serif",
                   fontSize: 38,
-                  color: "oklch(0.92 0.05 85)",
+                  color: "var(--ink)",
                 }}
               >
                 {displayName.charAt(0).toUpperCase()}
@@ -209,11 +209,12 @@ export default async function PublicProfilePage(
             fontSize: 34,
             lineHeight: 1.1,
             margin: "22px 0 6px",
+            color: "var(--ink)",
           }}
         >
           {displayName}
         </h1>
-        <p style={{ fontSize: 13, color: "oklch(0.86 0.08 82)" }}>
+        <p style={{ fontSize: 13, color: "var(--accent)" }}>
           @{profile.username}
         </p>
 
@@ -224,7 +225,7 @@ export default async function PublicProfilePage(
               maxWidth: 340,
               fontSize: 13.5,
               lineHeight: 1.6,
-              color: "oklch(0.72 0.02 82)",
+              color: "var(--ink-dim)",
             }}
           >
             {profile.bio}
@@ -235,7 +236,7 @@ export default async function PublicProfilePage(
           style={{
             marginTop: 40,
             fontSize: 13,
-            color: "oklch(0.6 0.02 80)",
+            color: "var(--ink-dim)",
           }}
         >
           No playlists on the shelf yet. Check back soon.
@@ -247,7 +248,7 @@ export default async function PublicProfilePage(
             marginTop: 48,
             fontSize: 12,
             fontWeight: 600,
-            color: "oklch(0.5 0.015 78)",
+            color: "var(--ink-dim)",
           }}
         >
           Make your own SpindlShare

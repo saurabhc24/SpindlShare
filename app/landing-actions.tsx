@@ -45,7 +45,7 @@ export function LandingActions({ children }: { children: ReactNode }) {
 
         <p
           id="landing-signin"
-          className="flex flex-wrap items-center justify-center gap-1 text-[11px] text-ink-dim"
+          className="flex flex-wrap items-center justify-center gap-1 text-[11px] text-ink"
         >
           Already have an account?{" "}
           <Link
@@ -70,7 +70,7 @@ export function LandingActions({ children }: { children: ReactNode }) {
             of the pitch. */}
         <p
           id="landing-legal"
-          className="flex items-center gap-2 text-[11px] text-ink-faint"
+          className="flex items-center gap-2 text-[11px] text-ink"
         >
           <Link
             href="/privacy"
@@ -106,7 +106,7 @@ export function LandingActions({ children }: { children: ReactNode }) {
               <h2 id="signin-card-title" className="heading text-2xl">
                 Sign in
               </h2>
-              <p className="mt-1 text-sm text-ink-dim">
+              <p className="mt-1 text-sm text-ink">
                 Build your SpindlShare in under a minute.
               </p>
             </div>
