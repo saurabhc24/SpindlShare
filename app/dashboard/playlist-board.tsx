@@ -41,7 +41,7 @@ const WRITE_DEBOUNCE_MS = 400;
 
 const SOURCE = {
   SPOTIFY: { label: "Spotify", icon: "/Spotify_icon.svg", w: 14, h: 14 },
-  YOUTUBE: { label: "YouTube", icon: "/YouTube_icon.svg", w: 16, h: 11 },
+  YOUTUBE: { label: "YouTube", icon: "/YouTube_icon.svg", w: 14, h: 14 },
   AMAZON: { label: "Playlist", icon: "/Link_icon.svg", w: 14, h: 14 },
   OTHER: { label: "Playlist", icon: "/Link_icon.svg", w: 14, h: 14 },
 } as const;

@@ -34,8 +34,8 @@ const SERVICES: Service[] = [
   {
     provider: "YOUTUBE",
     icon: "/YouTube_icon.svg",
-    width: 39,
-    height: 27,
+    width: 40,
+    height: 40,
     // No YouTube Music API -- those playlists surface through the YouTube one.
     blurb: "Bring in your YouTube playlists, YouTube Music ones included.",
   },
@@ -104,10 +104,8 @@ export default async function DashboardPage(props: PageProps<"/dashboard">) {
         />
       )}
 
-      {/* Drawn on a phone: wider than that the column centres rather than
-          stretching the cards into letterboxes. */}
-      {/* The invitation needs justify-between to spread three short blocks. The
-          board's main is flex-1 and brings its own 36px, so a gap would double it. */}
+      {/* Drawn on a phone, so the column stops growing and centres. Only the
+          invitation needs the gap -- the board's main is flex-1 with its own 36px. */}
       <div
         className={`mx-auto flex w-full max-w-[430px] flex-1 flex-col px-6 pt-8 pb-6 ${
           isFirstRun ? "justify-between gap-10" : ""
@@ -187,7 +185,7 @@ export default async function DashboardPage(props: PageProps<"/dashboard">) {
                   href={`/api/connect/${providerSlug(provider)}`}
                   className="flex w-full items-center justify-center gap-6 overflow-hidden rounded-lg bg-[rgba(115,115,115,0.21)] p-6 transition-colors hover:bg-[rgba(115,115,115,0.3)]"
                 >
-                  <span className="flex w-[39px] shrink-0 justify-center">
+                  <span className="flex w-[40px] shrink-0 justify-center">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={icon} alt="" width={width} height={height} />
                   </span>
