@@ -79,7 +79,7 @@ export function UsernameForm() {
 
   return (
     <form action={action} className="mt-14">
-      <label htmlFor="username" className="block text-base font-medium">
+      <label htmlFor="username" className="block text-base font-medium text-ink">
         Username
       </label>
       <input
