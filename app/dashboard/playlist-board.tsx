@@ -9,6 +9,7 @@ import {
   useSensor,
   useSensors,
   type DragEndEvent,
+  type DragStartEvent,
 } from "@dnd-kit/core";
 import {
   SortableContext,
@@ -57,6 +58,7 @@ export function PlaylistBoard({
   connectError?: string | null;
 }) {
   const [rows, setRows] = useState(initial);
+  const [draggingId, setDraggingId] = useState<string | null>(null);
   const [lastInitial, setLastInitial] = useState(initial);
   const [error, setError] = useState<string | null>(null);
 
@@ -87,6 +89,7 @@ export function PlaylistBoard({
   );
 
   async function handleDragEnd(event: DragEndEvent) {
+    setDraggingId(null);
     const { active, over } = event;
     if (!over || active.id === over.id) return;
     const oldIndex = rows.findIndex((r) => r.id === active.id);
@@ -223,11 +226,22 @@ export function PlaylistBoard({
           Chosen {chosen} out of {rows.length}
         </p>
 
-        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragStart={(event: DragStartEvent) => setDraggingId(String(event.active.id))}
+          onDragEnd={handleDragEnd}
+          onDragCancel={() => setDraggingId(null)}
+        >
           <SortableContext items={rows.map((r) => r.id)} strategy={verticalListSortingStrategy}>
             <ul className="flex w-full list-none flex-col gap-4 p-0">
               {rows.map((row) => (
-                <PlaylistItem key={row.id} row={row} onToggle={toggleVisibility} />
+                <PlaylistItem
+                  key={row.id}
+                  row={row}
+                  onToggle={toggleVisibility}
+                  recede={draggingId !== null && draggingId !== row.id}
+                />
               ))}
             </ul>
           </SortableContext>
@@ -240,79 +254,93 @@ export function PlaylistBoard({
 function PlaylistItem({
   row,
   onToggle,
+  recede,
 }: {
   row: PlaylistRow;
   onToggle: (id: string, visible: boolean) => void;
+  /** Another row is being dragged, so this one steps back out of the way. */
+  recede: boolean;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: row.id });
   const source = SOURCE[row.provider] ?? SOURCE.OTHER;
 
   return (
+    /* The li keeps dnd-kit's transform so the drag tracks the pointer exactly;
+       the lift lives on the card inside, where it can ease without fighting it. */
     <li
       ref={setNodeRef}
-      style={{ transform: CSS.Transform.toString(transform), transition }}
-      className={`flex w-full items-center justify-between overflow-hidden rounded-lg bg-surface-raised px-3 py-4 ${
-        isDragging ? "relative z-10 opacity-90" : ""
-      }`}
+      style={{
+        transform: CSS.Transform.toString(transform),
+        transition,
+        opacity: recede ? 0.7 : 1,
+        zIndex: isDragging ? 10 : undefined,
+        position: isDragging ? "relative" : undefined,
+      }}
+      className="w-full transition-opacity duration-150 ease-out"
     >
-      <div className="flex min-w-0 items-center gap-3">
-        {/* The handle alone starts a drag, so the switch stays clickable. */}
-        <button
-          type="button"
-          aria-label={`Reorder ${row.title}`}
-          className="shrink-0 cursor-grab touch-none text-[#c8c8c8] active:cursor-grabbing"
-          {...attributes}
-          {...listeners}
-        >
-          <svg width="8" height="10" viewBox="0 0 8 10" fill="currentColor" aria-hidden="true">
-            <circle cx="1.25" cy="1.25" r="1.25" />
-            <circle cx="6.75" cy="1.25" r="1.25" />
-            <circle cx="1.25" cy="5" r="1.25" />
-            <circle cx="6.75" cy="5" r="1.25" />
-            <circle cx="1.25" cy="8.75" r="1.25" />
-            <circle cx="6.75" cy="8.75" r="1.25" />
-          </svg>
-        </button>
-
+      <div
+        className="flex w-full items-center justify-between overflow-hidden rounded-lg bg-surface-raised px-3 py-4 transition-transform duration-150 ease-out"
+        style={{ transform: isDragging ? "scale(1.1)" : undefined }}
+      >
         <div className="flex min-w-0 items-center gap-3">
-          <span className="block size-[53px] shrink-0 overflow-hidden rounded-lg bg-white">
-            {row.coverImageUrl ? (
-              /* eslint-disable-next-line @next/next/no-img-element */
-              <img
-                src={row.coverImageUrl}
-                alt=""
-                width={53}
-                height={53}
-                className="size-full object-cover"
-              />
-            ) : null}
-          </span>
+          {/* The handle alone starts a drag, so the switch stays clickable. */}
+          <button
+            type="button"
+            aria-label={`Reorder ${row.title}`}
+            className="shrink-0 cursor-grab touch-none text-[#c8c8c8] active:cursor-grabbing"
+            {...attributes}
+            {...listeners}
+          >
+            <svg width="8" height="10" viewBox="0 0 8 10" fill="currentColor" aria-hidden="true">
+              <circle cx="1.25" cy="1.25" r="1.25" />
+              <circle cx="6.75" cy="1.25" r="1.25" />
+              <circle cx="1.25" cy="5" r="1.25" />
+              <circle cx="6.75" cy="5" r="1.25" />
+              <circle cx="1.25" cy="8.75" r="1.25" />
+              <circle cx="6.75" cy="8.75" r="1.25" />
+            </svg>
+          </button>
 
-          <div className="flex min-w-0 flex-col gap-1">
-            <p className="truncate text-sm font-extrabold text-white">{row.title}</p>
-            <div className="flex items-center gap-1">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={source.icon}
-                alt=""
-                width={source.w}
-                height={source.h}
-                className="shrink-0 object-contain"
-              />
-              <span className="text-[10px] font-light text-[#c8c8c8]">
-                {source.label}
-              </span>
+          <div className="flex min-w-0 items-center gap-3">
+            <span className="block size-[53px] shrink-0 overflow-hidden rounded-lg bg-white">
+              {row.coverImageUrl ? (
+                /* eslint-disable-next-line @next/next/no-img-element */
+                <img
+                  src={row.coverImageUrl}
+                  alt=""
+                  width={53}
+                  height={53}
+                  className="size-full object-cover"
+                />
+              ) : null}
+            </span>
+
+            <div className="flex min-w-0 flex-col gap-1">
+              <p className="truncate text-sm font-extrabold text-white">{row.title}</p>
+              <div className="flex items-center gap-1">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={source.icon}
+                  alt=""
+                  width={source.w}
+                  height={source.h}
+                  className="shrink-0 object-contain"
+                />
+                <span className="text-[10px] font-light text-[#c8c8c8]">
+                  {source.label}
+                </span>
+              </div>
             </div>
           </div>
         </div>
-      </div>
 
-      <Toggle
-        on={row.visible}
-        label={`Show ${row.title} on your page`}
-        onChange={(next) => onToggle(row.id, next)}
-      />
+          <Toggle
+            on={row.visible}
+            label={`Show ${row.title} on your page`}
+            onChange={(next) => onToggle(row.id, next)}
+          />
+      </div>
     </li>
   );
 }
