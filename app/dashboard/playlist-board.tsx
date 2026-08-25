@@ -46,7 +46,7 @@ export type MissingService = {
 
 const WRITE_DEBOUNCE_MS = 400;
 /** How long the handle is held before the card reads as picked up. */
-const HOLD_MS = 800;
+const HOLD_MS = 400;
 
 const SOURCE = {
   SPOTIFY: { label: "Spotify", icon: "/Spotify_icon.svg", w: 14, h: 14 },
