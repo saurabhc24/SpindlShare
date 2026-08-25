@@ -1,6 +1,12 @@
 "use client";
 
-import { useActionState, useEffect, useRef, useState } from "react";
+import {
+  useActionState,
+  useEffect,
+  useRef,
+  useState,
+  type PointerEvent as ReactPointerEvent,
+} from "react";
 import {
   DndContext,
   KeyboardSensor,
@@ -39,6 +45,8 @@ export type MissingService = {
 };
 
 const WRITE_DEBOUNCE_MS = 400;
+/** How long the handle is held before the card reads as picked up. */
+const HOLD_MS = 800;
 
 const SOURCE = {
   SPOTIFY: { label: "Spotify", icon: "/Spotify_icon.svg", w: 14, h: 14 },
@@ -59,6 +67,7 @@ export function PlaylistBoard({
 }) {
   const [rows, setRows] = useState(initial);
   const [draggingId, setDraggingId] = useState<string | null>(null);
+  const [heldId, setHeldId] = useState<string | null>(null);
   const [lastInitial, setLastInitial] = useState(initial);
   const [error, setError] = useState<string | null>(null);
 
@@ -90,6 +99,7 @@ export function PlaylistBoard({
 
   async function handleDragEnd(event: DragEndEvent) {
     setDraggingId(null);
+    setHeldId(null);
     const { active, over } = event;
     if (!over || active.id === over.id) return;
     const oldIndex = rows.findIndex((r) => r.id === active.id);
@@ -150,6 +160,8 @@ export function PlaylistBoard({
     );
   }
 
+  // Held long enough, or already moving -- whichever comes first picks it up.
+  const liftedId = draggingId ?? heldId;
   const chosen = rows.filter((r) => r.visible).length;
 
   return (
@@ -231,7 +243,10 @@ export function PlaylistBoard({
           collisionDetection={closestCenter}
           onDragStart={(event: DragStartEvent) => setDraggingId(String(event.active.id))}
           onDragEnd={handleDragEnd}
-          onDragCancel={() => setDraggingId(null)}
+          onDragCancel={() => {
+            setDraggingId(null);
+            setHeldId(null);
+          }}
         >
           <SortableContext items={rows.map((r) => r.id)} strategy={verticalListSortingStrategy}>
             <ul className="flex w-full list-none flex-col gap-4 p-0">
@@ -240,7 +255,9 @@ export function PlaylistBoard({
                   key={row.id}
                   row={row}
                   onToggle={toggleVisibility}
-                  recede={draggingId !== null && draggingId !== row.id}
+                  lifted={liftedId === row.id}
+                  recede={liftedId !== null && liftedId !== row.id}
+                  onHold={setHeldId}
                 />
               ))}
             </ul>
@@ -255,15 +272,52 @@ function PlaylistItem({
   row,
   onToggle,
   recede,
+  lifted,
+  onHold,
 }: {
   row: PlaylistRow;
   onToggle: (id: string, visible: boolean) => void;
-  /** Another row is being dragged, so this one steps back out of the way. */
+  /** Another row is picked up, so this one steps back out of the way. */
   recede: boolean;
+  /** Held long enough to have been picked up, or being dragged. */
+  lifted: boolean;
+  onHold: (id: string | null) => void;
 }) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
+  const { attributes, listeners, setNodeRef, transform, transition } =
     useSortable({ id: row.id });
   const source = SOURCE[row.provider] ?? SOURCE.OTHER;
+  const holdTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const releaseRef = useRef<(() => void) | null>(null);
+
+  const clearHold = () => {
+    if (holdTimer.current) clearTimeout(holdTimer.current);
+    holdTimer.current = null;
+    releaseRef.current?.();
+  };
+  useEffect(() => clearHold, []);
+
+  // Runs alongside dnd-kit rather than instead of it: its own onPointerDown is
+  // called first, so the 5px-to-drag behaviour is unchanged.
+  const beginHold = (event: ReactPointerEvent<HTMLButtonElement>) => {
+    listeners?.onPointerDown?.(event);
+    if (holdTimer.current) clearTimeout(holdTimer.current);
+    releaseRef.current?.();
+    holdTimer.current = setTimeout(() => onHold(row.id), HOLD_MS);
+
+    // On window, not on the handle: lifting the card slides the handle out from
+    // under the pointer, so its own pointerup would never arrive.
+    const release = () => {
+      if (holdTimer.current) clearTimeout(holdTimer.current);
+      holdTimer.current = null;
+      window.removeEventListener("pointerup", release);
+      window.removeEventListener("pointercancel", release);
+      releaseRef.current = null;
+      onHold(null);
+    };
+    releaseRef.current = release;
+    window.addEventListener("pointerup", release);
+    window.addEventListener("pointercancel", release);
+  };
 
   return (
     /* The li keeps dnd-kit's transform so the drag tracks the pointer exactly;
@@ -274,14 +328,14 @@ function PlaylistItem({
         transform: CSS.Transform.toString(transform),
         transition,
         opacity: recede ? 0.7 : 1,
-        zIndex: isDragging ? 10 : undefined,
-        position: isDragging ? "relative" : undefined,
+        zIndex: lifted ? 10 : undefined,
+        position: lifted ? "relative" : undefined,
       }}
       className="w-full transition-opacity duration-150 ease-out"
     >
       <div
         className="flex w-full items-center justify-between overflow-hidden rounded-lg bg-surface-raised px-3 py-4 transition-transform duration-150 ease-out"
-        style={{ transform: isDragging ? "scale(1.1)" : undefined }}
+        style={{ transform: lifted ? "scale(1.1)" : undefined }}
       >
         <div className="flex min-w-0 items-center gap-3">
           {/* The handle alone starts a drag, so the switch stays clickable. */}
@@ -291,6 +345,7 @@ function PlaylistItem({
             className="shrink-0 cursor-grab touch-none text-[#c8c8c8] active:cursor-grabbing"
             {...attributes}
             {...listeners}
+            onPointerDown={beginHold}
           >
             <svg width="8" height="10" viewBox="0 0 8 10" fill="currentColor" aria-hidden="true">
               <circle cx="1.25" cy="1.25" r="1.25" />
