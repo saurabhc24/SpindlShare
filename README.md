@@ -59,7 +59,7 @@ obtain each value.
 than a test framework — enough to assert the invariants that matter without
 another dependency in the tree.
 
-`crypto`, `youtube`, `hardening` and `link` run anywhere. `sync`, `username`,
+`crypto`, `youtube`, `hardening`, `link` and `authurl` run anywhere. `sync`, `username`,
 `rename` and `admin` need a live database; they create rows under a timestamped
 prefix and clean up after themselves.
 

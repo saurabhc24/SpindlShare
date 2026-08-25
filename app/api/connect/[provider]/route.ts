@@ -32,5 +32,10 @@ export async function GET(
   }
 
   const state = await createOAuthState(provider);
-  return NextResponse.redirect(PROVIDERS[provider].getAuthorizationUrl(state));
+  // ?switch=1 comes from "use a different account" after a failed import.
+  const forceApproval =
+    new URL(request.url).searchParams.get("switch") === "1";
+  return NextResponse.redirect(
+    PROVIDERS[provider].getAuthorizationUrl(state, { forceApproval })
+  );
 }

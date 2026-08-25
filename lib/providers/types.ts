@@ -20,8 +20,14 @@ export type OAuthTokens = {
 
 export type ProviderClient = {
   provider: MusicProvider;
-  /** Where to send the user to grant access. */
-  getAuthorizationUrl(state: string): string;
+  /**
+   * Where to send the user to grant access. `forceApproval` makes the provider
+   * show its account chooser instead of silently reusing the browser session.
+   */
+  getAuthorizationUrl(
+    state: string,
+    options?: { forceApproval?: boolean }
+  ): string;
   exchangeCode(code: string): Promise<OAuthTokens>;
   refreshAccessToken(refreshToken: string): Promise<OAuthTokens>;
   fetchPlaylists(accessToken: string): Promise<NormalizedPlaylist[]>;

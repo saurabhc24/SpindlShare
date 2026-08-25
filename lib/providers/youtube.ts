@@ -83,7 +83,7 @@ function pickThumbnail(snippet: YouTubePlaylistItem["snippet"]) {
 export const youtube: ProviderClient = {
   provider: "YOUTUBE",
 
-  getAuthorizationUrl(state: string) {
+  getAuthorizationUrl(state: string, options?: { forceApproval?: boolean }) {
     const { clientId, redirectUri } = config();
     const params = new URLSearchParams({
       response_type: "code",
@@ -93,7 +93,8 @@ export const youtube: ProviderClient = {
       state,
       // Both are required for Google to return a refresh token.
       access_type: "offline",
-      prompt: "consent",
+      // select_account adds Google's chooser, for picking a different account.
+      prompt: options?.forceApproval ? "select_account consent" : "consent",
       include_granted_scopes: "true",
     });
     return `${AUTHORIZE_URL}?${params.toString()}`;

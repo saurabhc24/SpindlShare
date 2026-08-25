@@ -19,7 +19,8 @@
     "check:rename": "tsx --conditions=react-server tests/rename.check.mts",
     "check:admin": "tsx --conditions=react-server tests/admin.check.mts",
     "check:link": "tsx --conditions=react-server tests/playlist-link.check.mts",
-    "check": "npm run check:crypto && npm run check:sync && npm run check:youtube && npm run check:hardening && npm run check:username && npm run check:rename && npm run check:admin && npm run check:link"
+    "check:authurl": "tsx --conditions=react-server tests/authurl.check.mts",
+    "check": "npm run check:crypto && npm run check:sync && npm run check:youtube && npm run check:hardening && npm run check:username && npm run check:rename && npm run check:admin && npm run check:link && npm run check:authurl"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.11.3",

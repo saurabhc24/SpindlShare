@@ -74,7 +74,7 @@ type SpotifyPlaylistItem = {
 export const spotify: ProviderClient = {
   provider: "SPOTIFY",
 
-  getAuthorizationUrl(state: string) {
+  getAuthorizationUrl(state: string, options?: { forceApproval?: boolean }) {
     const { clientId, redirectUri } = config();
     const params = new URLSearchParams({
       response_type: "code",
@@ -82,7 +82,7 @@ export const spotify: ProviderClient = {
       redirect_uri: redirectUri,
       scope: SCOPES.join(" "),
       state,
-      // Deliberately no `show_dialog`. Setting it true forces the approval
+      // `show_dialog` off by default. Setting it true forces the approval
       // screen even for a user who is already signed in to Spotify in this
       // browser and has already granted these scopes -- turning what should be
       // a silent round-trip into a form to click through on every reconnect.
@@ -96,6 +96,9 @@ export const spotify: ProviderClient = {
       // and Android native SDKs, which a browser cannot invoke. What carries
       // over is the *browser's* Spotify session, not the desktop or phone app's.
     });
+    // The exception: after a failed import, the browser's Spotify session is
+    // the thing most likely to be wrong, so let the user pick another account.
+    if (options?.forceApproval) params.set("show_dialog", "true");
     return `${AUTHORIZE_URL}?${params.toString()}`;
   },
 

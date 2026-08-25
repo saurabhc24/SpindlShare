@@ -44,6 +44,9 @@ export type MissingService = {
   label: string;
 };
 
+/** The service whose first import failed, so the error can offer a way out. */
+export type RetryProvider = { slug: string; label: string };
+
 const WRITE_DEBOUNCE_MS = 400;
 /** How long the handle is held before the card reads as picked up. */
 const HOLD_MS = 400;
@@ -59,17 +62,20 @@ export function PlaylistBoard({
   initial,
   missing,
   connectError,
+  retryProvider,
 }: {
   initial: PlaylistRow[];
   missing: MissingService[];
   /** An OAuth round trip can land back here; this screen has the only slot for it. */
   connectError?: string | null;
+  retryProvider?: RetryProvider | null;
 }) {
   const [rows, setRows] = useState(initial);
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [heldId, setHeldId] = useState<string | null>(null);
   const [lastInitial, setLastInitial] = useState(initial);
   const [error, setError] = useState<string | null>(null);
+  const [retrying, setRetrying] = useState(false);
 
   // Adding a link revalidates on the server, so the new list arrives as a fresh
   // `initial`. Adjusted during render rather than in an effect, which would
@@ -160,6 +166,26 @@ export function PlaylistBoard({
     );
   }
 
+  // The account is already connected, so this re-runs the import rather than
+  // sending anyone back through an authorization that already succeeded.
+  async function retryImport(slug: string) {
+    setRetrying(true);
+    setError(null);
+    try {
+      const response = await fetch(`/api/sync/${slug}`, { method: "POST" });
+      const data = await response.json().catch(() => null);
+      if (response.ok) {
+        window.location.reload();
+        return;
+      }
+      setError(data?.error ?? "The import failed again. Please try later.");
+    } catch {
+      setError("Couldn't reach the service. Please try again.");
+    } finally {
+      setRetrying(false);
+    }
+  }
+
   // Held long enough, or already moving -- whichever comes first picks it up.
   const liftedId = draggingId ?? heldId;
   const chosen = rows.filter((r) => r.visible).length;
@@ -223,9 +249,30 @@ export function PlaylistBoard({
       </div>
 
       {(linkState?.error || error || connectError) && (
-        <p role="alert" className="note note-error w-full">
-          {linkState?.error ?? error ?? connectError}
-        </p>
+        <div role="alert" className="note note-error w-full">
+          <p>{linkState?.error ?? error ?? connectError}</p>
+          {/* The connection is fine, so neither route re-authorizes by default:
+              one re-runs the read, the other is for when the browser is signed
+              in to the wrong account at that service. */}
+          {retryProvider && !linkState?.error && (
+            <span className="mt-3 flex flex-wrap items-center gap-4">
+              <button
+                type="button"
+                onClick={() => retryImport(retryProvider.slug)}
+                disabled={retrying}
+                className="cursor-pointer font-semibold text-white underline underline-offset-4 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {retrying ? "Trying again..." : "Try the import again"}
+              </button>
+              <a
+                href={`/api/connect/${retryProvider.slug}?switch=1`}
+                className="font-semibold text-white underline underline-offset-4"
+              >
+                Use a different {retryProvider.label} account
+              </a>
+            </span>
+          )}
+        </div>
       )}
       {linkState?.success && (
         <p role="status" className="note note-ok w-full">

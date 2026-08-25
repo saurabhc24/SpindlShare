@@ -4,6 +4,7 @@ import { signOut } from "@/lib/auth";
 import { requireProfile } from "@/lib/dal";
 import { prisma } from "@/lib/prisma";
 import { PROVIDERS, providerSlug, type ConnectableProvider } from "@/lib/providers";
+import { syncFailureHint } from "@/lib/sync-status";
 
 import { PlaylistBoard, type MissingService, type PlaylistRow } from "./playlist-board";
 import { SettingsMenu } from "./settings-menu";
@@ -63,7 +64,7 @@ export default async function DashboardPage(props: PageProps<"/dashboard">) {
   const [connections, playlists] = await Promise.all([
     prisma.connectedAccount.findMany({
       where: { userId: user.id },
-      select: { provider: true },
+      select: { provider: true, lastSyncStatus: true },
     }),
     prisma.playlist.findMany({
       where: { userId: user.id },
@@ -87,7 +88,26 @@ export default async function DashboardPage(props: PageProps<"/dashboard">) {
   const searchParams = await props.searchParams;
   const rawError = searchParams.error;
   const errorKey = Array.isArray(rawError) ? rawError[0] : rawError;
-  const errorMessage = errorKey ? ERROR_MESSAGES[errorKey] : null;
+  let errorMessage = errorKey ? ERROR_MESSAGES[errorKey] : null;
+
+  // "We couldn't import your playlists" on its own sends people off to check a
+  // login that already succeeded. syncProvider stored the provider's own reason
+  // -- an allowlist, a Premium requirement, a revoked grant -- so say that.
+  const rawProvider = searchParams.provider;
+  const providerSlugParam = Array.isArray(rawProvider) ? rawProvider[0] : rawProvider;
+  const failing = providerSlugParam
+    ? connections.find((row) => providerSlug(row.provider) === providerSlugParam)
+    : undefined;
+  if (errorKey === "import_failed" && failing?.lastSyncStatus) {
+    errorMessage = syncFailureHint(failing.lastSyncStatus);
+  }
+  const retryProvider =
+    errorKey === "import_failed" && providerSlugParam
+      ? {
+          slug: providerSlugParam,
+          label: providerSlugParam === "spotify" ? "Spotify" : "YouTube",
+        }
+      : null;
 
   // Set by the username claim and only by it. The moment strips the flag as it
   // opens, so a refresh lands on the plain screen.
@@ -209,6 +229,7 @@ export default async function DashboardPage(props: PageProps<"/dashboard">) {
             initial={playlists satisfies PlaylistRow[]}
             missing={missing}
             connectError={errorMessage}
+            retryProvider={retryProvider}
           />
         )}
 
