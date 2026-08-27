@@ -72,7 +72,8 @@ app/landing-actions.tsx           the sign-in card, and the links that open it
 app/[username]/                   public profile page + OG image
 app/(auth)/layout.tsx             one backdrop for all three auth screens
 app/(auth)/                       login, magic-link verify, username onboarding
-app/dashboard/page.tsx            the connect-a-service screen a new account lands on
+app/dashboard/page.tsx            the paste-a-link screen a new account lands on
+app/dashboard/paste-link-form.tsx the link row, shared by that screen and the board
 app/dashboard/welcome-moment.tsx  the greeting a new account gets, once
 app/(legal)/                      privacy policy and terms
 app/admin/                        moderation and site overview

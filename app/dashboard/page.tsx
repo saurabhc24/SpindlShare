@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { PROVIDERS, providerSlug, type ConnectableProvider } from "@/lib/providers";
 import { syncFailureHint } from "@/lib/sync-status";
 
+import { PasteLinkForm } from "./paste-link-form";
 import { PlaylistBoard, type MissingService, type PlaylistRow } from "./playlist-board";
 import { SettingsMenu } from "./settings-menu";
 import { WelcomeMoment } from "./welcome-moment";
@@ -14,33 +15,6 @@ import { WelcomeMoment } from "./welcome-moment";
  * The signed-in home. Nothing connected and nothing pasted shows the invitation;
  * anything else shows the playlist board, which is the same screen with a shelf.
  */
-
-type Service = {
-  provider: ConnectableProvider;
-  /** In public/, exported from the design at the size it is drawn. */
-  icon: string;
-  width: number;
-  height: number;
-  blurb: string;
-};
-
-const SERVICES: Service[] = [
-  {
-    provider: "SPOTIFY",
-    icon: "/Spotify_icon.svg",
-    width: 39,
-    height: 40,
-    blurb: "Import your playlists that you created or follow on Spotify.",
-  },
-  {
-    provider: "YOUTUBE",
-    icon: "/YouTube_icon.svg",
-    width: 40,
-    height: 40,
-    // No YouTube Music API -- those playlists surface through the YouTube one.
-    blurb: "Bring in your YouTube playlists, YouTube Music ones included.",
-  },
-];
 
 /**
  * Where a round trip through a provider can land. The design has no box for this,
@@ -177,52 +151,50 @@ export default async function DashboardPage(props: PageProps<"/dashboard">) {
         </header>
 
         {isFirstRun ? (
-          <main className="flex w-full flex-col gap-9">
-            <div className="flex flex-col items-center gap-3 text-center text-white">
-              {/* One line, on the column's full width: at 24px it needs ~330px of
-                  the 345 there are, so the paragraph's inset would cost the line. */}
-              <h1 className="heading text-[clamp(18px,6vw,24px)]">
+          <main className="flex w-full flex-col items-center gap-9 pb-[66px]">
+            <div className="flex w-full flex-col items-center gap-3 px-3 text-center">
+              <h1 className="heading text-[20px] text-white">
                 Connect to your music service
               </h1>
-              <p className="px-3 text-sm text-[#c8c8c8]">
+              <p className="text-sm text-[#c8c8c8]">
                 Link Spotify or Youtube Music to import your playlists and start
                 building your page
               </p>
             </div>
 
             {errorMessage && (
-              <p role="alert" className="note note-error">
+              <p role="alert" className="note note-error w-full">
                 {errorMessage}
               </p>
             )}
 
-            <div className="flex w-full flex-col gap-6">
-              {SERVICES.map(({ provider, icon, width, height, blurb }) => (
-                /* Straight to the OAuth route even unconfigured -- it redirects
-                   back here saying so, rather than the card leading elsewhere. */
-                <a
-                  key={provider}
-                  href={`/api/connect/${providerSlug(provider)}`}
-                  className="flex w-full items-center justify-center gap-6 overflow-hidden rounded-lg bg-[rgba(115,115,115,0.21)] p-6 transition-colors hover:bg-[rgba(115,115,115,0.3)]"
-                >
-                  <span className="flex w-[40px] shrink-0 justify-center">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={icon} alt="" width={width} height={height} />
-                  </span>
-                  <span className="flex-1 text-sm text-[#c8c8c8]">{blurb}</span>
-                </a>
-              ))}
-
-              {/* The third way in, for anything we can't authorize. Quieter than
-                  the cards because it is the fallback, not the invitation. */}
-              <div className="flex w-full flex-col items-center gap-3 px-6 py-4">
+            <div className="flex w-full flex-col items-center justify-center gap-3 px-6 py-4">
+              {/* The two marks overlap by 11px, YouTube over Spotify -- they are
+                  a picture of what a link can be, not two buttons any more. */}
+              <span aria-hidden="true" className="relative block h-10 w-[68px]">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src="/Add_link_vector.svg" alt="" width={43} height={43} />
-                <p className="w-[243px] text-center text-sm text-[#c8c8c8]">
-                  Paste public Spotify or YouTube music link to import it.
-                </p>
-              </div>
+                <img
+                  src="/Spotify_icon.svg"
+                  alt=""
+                  width={39}
+                  height={40}
+                  className="absolute top-0 left-0"
+                />
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src="/YouTube_icon.svg"
+                  alt=""
+                  width={40}
+                  height={40}
+                  className="absolute top-0 left-[28px]"
+                />
+              </span>
+              <p className="w-[243px] text-center text-sm text-[#c8c8c8]">
+                Paste your Spotify or YouTube music link to import it.
+              </p>
             </div>
+
+            <PasteLinkForm />
           </main>
         ) : (
           <PlaylistBoard

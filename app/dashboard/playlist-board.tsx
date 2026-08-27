@@ -1,7 +1,6 @@
 "use client";
 
 import {
-  useActionState,
   useEffect,
   useRef,
   useState,
@@ -28,7 +27,7 @@ import { CSS } from "@dnd-kit/utilities";
 
 import type { MusicProvider } from "@/app/generated/prisma/enums";
 
-import { addPlaylistLink, type AddLinkState } from "./playlists/actions";
+import { PasteLinkForm } from "./paste-link-form";
 
 export type PlaylistRow = {
   id: string;
@@ -85,11 +84,6 @@ export function PlaylistBoard({
     setRows(initial);
   }
   const pendingWrites = useRef(new Map<string, ReturnType<typeof setTimeout>>());
-
-  const [linkState, linkAction, linkPending] = useActionState<AddLinkState, FormData>(
-    addPlaylistLink,
-    undefined
-  );
 
   useEffect(() => {
     const timers = pendingWrites.current;
@@ -201,31 +195,7 @@ export function PlaylistBoard({
       </div>
 
       <div className="flex w-full flex-col items-start justify-center gap-4">
-        <form action={linkAction} className="flex w-full items-center gap-4">
-          <div className="flex min-w-0 flex-1 items-center overflow-hidden rounded-lg bg-surface-raised p-3">
-            <input
-              name="url"
-              type="url"
-              required
-              inputMode="url"
-              autoComplete="off"
-              placeholder="Paste a playlist link"
-              aria-label="Paste a playlist link"
-              className="w-full bg-transparent text-sm font-medium text-white outline-none placeholder:text-[#c8c8c8]"
-            />
-          </div>
-          <button
-            type="submit"
-            disabled={linkPending}
-            aria-label="Import this link"
-            className="grid size-[35px] shrink-0 cursor-pointer place-items-center rounded-full transition-transform hover:-translate-y-px disabled:cursor-not-allowed disabled:opacity-45"
-            style={{ background: "var(--gold)" }}
-          >
-            <svg viewBox="0 0 24 24" className="size-4" fill="none" stroke="#151210" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-              <path d="m9 18 6-6-6-6" />
-            </svg>
-          </button>
-        </form>
+        <PasteLinkForm />
 
         {missing.map((service) => (
           <a
@@ -248,13 +218,13 @@ export function PlaylistBoard({
         ))}
       </div>
 
-      {(linkState?.error || error || connectError) && (
+      {(error || connectError) && (
         <div role="alert" className="note note-error w-full">
-          <p>{linkState?.error ?? error ?? connectError}</p>
+          <p>{error ?? connectError}</p>
           {/* The connection is fine, so neither route re-authorizes by default:
               one re-runs the read, the other is for when the browser is signed
               in to the wrong account at that service. */}
-          {retryProvider && !linkState?.error && (
+          {retryProvider && (
             <span className="mt-3 flex flex-wrap items-center gap-4">
               <button
                 type="button"
@@ -274,12 +244,6 @@ export function PlaylistBoard({
           )}
         </div>
       )}
-      {linkState?.success && (
-        <p role="status" className="note note-ok w-full">
-          {linkState.success}
-        </p>
-      )}
-
       <div className="flex w-full flex-col items-center gap-4">
         <p className="w-full text-sm font-extrabold text-white">
           Chosen {chosen} out of {rows.length}
