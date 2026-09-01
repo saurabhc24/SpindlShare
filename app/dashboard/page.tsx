@@ -3,11 +3,11 @@ import Link from "next/link";
 import { signOut } from "@/lib/auth";
 import { requireProfile } from "@/lib/dal";
 import { prisma } from "@/lib/prisma";
-import { PROVIDERS, providerSlug, type ConnectableProvider } from "@/lib/providers";
+import { providerSlug } from "@/lib/providers";
 import { syncFailureHint } from "@/lib/sync-status";
 
 import { PasteLinkForm } from "./paste-link-form";
-import { PlaylistBoard, type MissingService, type PlaylistRow } from "./playlist-board";
+import { PlaylistBoard, type PlaylistRow } from "./playlist-board";
 import { SettingsMenu } from "./settings-menu";
 import { WelcomeMoment } from "./welcome-moment";
 
@@ -51,13 +51,6 @@ export default async function DashboardPage(props: PageProps<"/dashboard">) {
   // Nothing connected and nothing pasted is the only state with no shelf to
   // manage, so it is the only one that still gets the invitation.
   const isFirstRun = connected.size === 0 && playlists.length === 0;
-  const missing: MissingService[] = (Object.keys(PROVIDERS) as ConnectableProvider[])
-    .filter((provider) => !connected.has(provider))
-    .map((provider) => ({
-      provider,
-      slug: providerSlug(provider),
-      label: provider === "SPOTIFY" ? "Spotify" : "YouTube",
-    }));
 
   const searchParams = await props.searchParams;
   const rawError = searchParams.error;
@@ -199,7 +192,6 @@ export default async function DashboardPage(props: PageProps<"/dashboard">) {
         ) : (
           <PlaylistBoard
             initial={playlists satisfies PlaylistRow[]}
-            missing={missing}
             connectError={errorMessage}
             retryProvider={retryProvider}
           />

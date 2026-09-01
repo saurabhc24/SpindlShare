@@ -37,12 +37,6 @@ export type PlaylistRow = {
   visible: boolean;
 };
 
-export type MissingService = {
-  provider: "SPOTIFY" | "YOUTUBE";
-  slug: string;
-  label: string;
-};
-
 /** The service whose first import failed, so the error can offer a way out. */
 export type RetryProvider = { slug: string; label: string };
 
@@ -59,12 +53,10 @@ const SOURCE = {
 
 export function PlaylistBoard({
   initial,
-  missing,
   connectError,
   retryProvider,
 }: {
   initial: PlaylistRow[];
-  missing: MissingService[];
   /** An OAuth round trip can land back here; this screen has the only slot for it. */
   connectError?: string | null;
   retryProvider?: RetryProvider | null;
@@ -194,29 +186,7 @@ export function PlaylistBoard({
         </p>
       </div>
 
-      <div className="flex w-full flex-col items-start justify-center gap-4">
-        <PasteLinkForm />
-
-        {missing.map((service) => (
-          <a
-            key={service.provider}
-            href={`/api/connect/${service.slug}`}
-            className="flex w-full items-center justify-center gap-3 overflow-hidden rounded-lg bg-surface-raised p-3 transition-colors hover:brightness-125"
-          >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={SOURCE[service.provider].icon}
-              alt=""
-              width={16}
-              height={16}
-              className="size-4 object-contain"
-            />
-            <span className="text-sm font-medium text-white">
-              Import from {service.label}
-            </span>
-          </a>
-        ))}
-      </div>
+      <PasteLinkForm />
 
       {(error || connectError) && (
         <div role="alert" className="note note-error w-full">
