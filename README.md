@@ -23,14 +23,7 @@ npm run dev                  # http://127.0.0.1:3000
 > Use `127.0.0.1`, not `localhost` — Spotify rejects `localhost` redirect URIs
 > for the **connect** flow, whose URL we build ourselves.
 >
-> Spotify **login** is the exception, and it cannot be made to work locally.
-> Auth.js derives its callback from the request, and `next dev` reports its
-> origin as `http://localhost:PORT` whatever address you browse to — the `Host`
-> and `X-Forwarded-Host` headers are ignored, `-H 127.0.0.1` doesn't change it,
-> and `AUTH_URL` doesn't override it. Spotify's rules say "localhost is not
-> allowed as redirect URI", so there is no value that can be registered to match
-> what gets sent. Sign in with Google or the email link locally; Spotify login
-> works on a deployed URL, where the origin is real.
+> Sign in with Google or the email link.
 
 ### Minimum env to boot
 
@@ -315,7 +308,6 @@ their password:
 | --- | --- |
 | Google | `https://your-app/api/auth/callback/google` (login) |
 | Google | `https://your-app/api/connect/youtube/callback` (connect) |
-| Spotify | `https://your-app/api/auth/callback/spotify` (login) |
 | Spotify | `https://your-app/api/connect/spotify/callback` (connect) |
 
 The live values are worth reading rather than assuming — `/api/auth/providers`

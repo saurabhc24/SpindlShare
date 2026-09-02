@@ -1,7 +1,6 @@
 import NextAuth, { type NextAuthConfig } from "next-auth";
 import Google from "next-auth/providers/google";
 import Resend from "next-auth/providers/resend";
-import Spotify from "next-auth/providers/spotify";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 
 import { prisma } from "@/lib/prisma";
@@ -25,19 +24,6 @@ export function isEmailLoginConfigured() {
   return Boolean(process.env.AUTH_RESEND_KEY?.trim());
 }
 
-/**
- * Note this needs only the client id and secret -- not SPOTIFY_REDIRECT_URI,
- * which belongs to the separate playlist-connect flow. Signing in and importing
- * playlists are different grants against the same Spotify app, so one can be
- * configured without the other.
- */
-export function isSpotifyLoginConfigured() {
-  return Boolean(
-    process.env.SPOTIFY_CLIENT_ID?.trim() &&
-      process.env.SPOTIFY_CLIENT_SECRET?.trim()
-  );
-}
-
 function buildProviders(): NextAuthConfig["providers"] {
   const providers: NextAuthConfig["providers"] = [];
 
@@ -58,26 +44,6 @@ function buildProviders(): NextAuthConfig["providers"] {
         authorization: {
           params: { scope: "openid email profile" },
         },
-      })
-    );
-  }
-
-  if (isSpotifyLoginConfigured()) {
-    providers.push(
-      Spotify({
-        clientId: process.env.SPOTIFY_CLIENT_ID,
-        clientSecret: process.env.SPOTIFY_CLIENT_SECRET,
-        // The provider's default scope is `user-read-email` -- identity only.
-        // Playlist scopes stay with the connect flow, so signing in with
-        // Spotify does NOT import anything: the user still connects Spotify on
-        // the Connections page, and that grant is what lands in
-        // ConnectedAccount. Keeping them apart is what lets someone revoke the
-        // music connection without losing the ability to sign in.
-        //
-        // Heads up: Auth.js reads the profile from https://api.spotify.com/v1/me,
-        // which is a Web API call -- so this whole provider 403s ("active
-        // premium subscription required for the owner of the app") until the
-        // account owning the Spotify app has Premium.
       })
     );
   }

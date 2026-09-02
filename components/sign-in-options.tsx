@@ -5,9 +5,7 @@ import {
   signIn,
   isEmailLoginConfigured,
   isGoogleLoginConfigured,
-  isSpotifyLoginConfigured,
 } from "@/lib/auth";
-import { ProviderIcon } from "@/components/provider-badge";
 
 /**
  * The sign-in methods themselves, without the page around them.
@@ -37,9 +35,8 @@ export function safeRedirectTo(callbackUrl: string | undefined) {
 
 export function SignInOptions({ redirectTo }: { redirectTo: string }) {
   const googleEnabled = isGoogleLoginConfigured();
-  const spotifyEnabled = isSpotifyLoginConfigured();
   const emailEnabled = isEmailLoginConfigured();
-  const oauthEnabled = googleEnabled || spotifyEnabled;
+  const oauthEnabled = googleEnabled;
 
   return (
     <>
@@ -47,9 +44,7 @@ export function SignInOptions({ redirectTo }: { redirectTo: string }) {
         <p className="note note-warn">
           No sign-in method is configured yet. Set{" "}
           <code className="font-mono text-xs">GOOGLE_CLIENT_ID</code> and{" "}
-          <code className="font-mono text-xs">GOOGLE_CLIENT_SECRET</code>,{" "}
-          <code className="font-mono text-xs">SPOTIFY_CLIENT_ID</code> and{" "}
-          <code className="font-mono text-xs">SPOTIFY_CLIENT_SECRET</code>, or{" "}
+          <code className="font-mono text-xs">GOOGLE_CLIENT_SECRET</code>, or{" "}
           <code className="font-mono text-xs">AUTH_RESEND_KEY</code> for email
           links, then redeploy.
         </p>
@@ -90,22 +85,6 @@ export function SignInOptions({ redirectTo }: { redirectTo: string }) {
           </form>
         )}
 
-        {spotifyEnabled && (
-          <form
-            action={async () => {
-              "use server";
-              await signIn("spotify", { redirectTo });
-            }}
-          >
-            <button type="submit" className={OAUTH_BUTTON_CLASS}>
-              <ProviderIcon
-                provider="SPOTIFY"
-                className="h-5 w-5 text-[#1db954]"
-              />
-              Continue with Spotify
-            </button>
-          </form>
-        )}
       </div>
 
       {oauthEnabled && emailEnabled && (
