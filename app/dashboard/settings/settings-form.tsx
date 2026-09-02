@@ -41,13 +41,47 @@ export function SettingsForm({
     FormData
   >(deleteMyAccount, undefined);
 
+  const [nameValue, setNameValue] = useState(displayName);
   const [bioValue, setBioValue] = useState(bio);
   const [isPublicValue, setIsPublicValue] = useState(isPublic);
   const [photo, setPhoto] = useState(avatarUrl);
+  // Empty by design: the current handle is the placeholder, so the field reads
+  // as "type a new one" rather than as text to clear first.
+  const [usernameValue, setUsernameValue] = useState("");
+
   const [uploading, setUploading] = useState(false);
   const [photoError, setPhotoError] = useState<string | null>(null);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const fileInput = useRef<HTMLInputElement>(null);
+
+  // A save revalidates, so the saved values come back as new props. Re-syncing
+  // here is what returns both buttons to disabled once a change has landed.
+  const [saved, setSaved] = useState({ displayName, bio, isPublic, avatarUrl, username });
+  if (
+    saved.displayName !== displayName ||
+    saved.bio !== bio ||
+    saved.isPublic !== isPublic ||
+    saved.avatarUrl !== avatarUrl ||
+    saved.username !== username
+  ) {
+    setSaved({ displayName, bio, isPublic, avatarUrl, username });
+    setNameValue(displayName);
+    setBioValue(bio);
+    setIsPublicValue(isPublic);
+    setPhoto(avatarUrl);
+    setUsernameValue("");
+  }
+
+  const profileDirty =
+    nameValue !== displayName ||
+    bioValue !== bio ||
+    isPublicValue !== isPublic ||
+    (photo ?? "") !== (avatarUrl ?? "");
+
+  // Case-sensitive: the action treats a casing-only edit as a real change, so
+  // the button has to offer it.
+  const typedUsername = usernameValue.trim();
+  const usernameDirty = typedUsername !== "" && typedUsername !== username;
 
   async function onPickPhoto(event: React.ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
@@ -74,11 +108,21 @@ export function SettingsForm({
     }
   }
 
+  const openPicker = () => fileInput.current?.click();
+
   return (
     <div className="flex w-full flex-col gap-6">
       <form action={profileAction} className="flex w-full flex-col items-center gap-4">
         <div className="flex flex-col items-center gap-2">
-          <span className="relative block size-16 shrink-0 overflow-hidden rounded-full bg-[var(--panel-solid)]">
+          {/* The picture is the obvious thing to click, so it opens the same
+              picker the caption below does. */}
+          <button
+            type="button"
+            onClick={openPicker}
+            disabled={uploading}
+            aria-label="Change photo"
+            className="relative block size-16 shrink-0 cursor-pointer overflow-hidden rounded-full bg-[var(--panel-solid)] transition-opacity hover:opacity-80 disabled:cursor-not-allowed disabled:opacity-60"
+          >
             {photo ? (
               /* eslint-disable-next-line @next/next/no-img-element */
               <img src={photo} alt="" width={64} height={64} className="size-full object-cover" />
@@ -87,7 +131,7 @@ export function SettingsForm({
                 {username.charAt(0).toUpperCase()}
               </span>
             )}
-          </span>
+          </button>
 
           {/* accept="image/*" is what makes a phone offer its gallery and camera,
               and a desktop browser filter its file dialog to images. */}
@@ -101,7 +145,7 @@ export function SettingsForm({
           />
           <button
             type="button"
-            onClick={() => fileInput.current?.click()}
+            onClick={openPicker}
             disabled={uploading}
             className="cursor-pointer text-sm font-medium text-[#c8c8c8] transition-colors hover:text-white disabled:cursor-not-allowed disabled:opacity-60"
           >
@@ -124,7 +168,8 @@ export function SettingsForm({
           <input
             id="displayName"
             name="displayName"
-            defaultValue={displayName}
+            value={nameValue}
+            onChange={(event) => setNameValue(event.target.value)}
             maxLength={50}
             autoComplete="name"
             placeholder="Your name"
@@ -198,8 +243,8 @@ export function SettingsForm({
         <div className="flex w-full flex-col items-start">
           <button
             type="submit"
-            disabled={profilePending}
-            className="cursor-pointer rounded-lg px-6 py-3 text-sm font-bold text-[#313131] transition-transform hover:-translate-y-px disabled:cursor-not-allowed disabled:opacity-45"
+            disabled={!profileDirty || profilePending || uploading}
+            className="cursor-pointer rounded-lg px-6 py-3 text-sm font-bold text-[#313131] transition-transform hover:-translate-y-px disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:translate-y-0"
             style={{ background: "var(--gold)" }}
           >
             {profilePending ? "Saving..." : "Save changes"}
@@ -217,11 +262,13 @@ export function SettingsForm({
             <input
               id="username"
               name="username"
-              defaultValue={username}
+              value={usernameValue}
+              onChange={(event) => setUsernameValue(event.target.value)}
+              placeholder={username}
               autoComplete="off"
               autoCapitalize="none"
               spellCheck={false}
-              className="w-full bg-transparent text-sm font-medium text-[#c8c8c8] outline-none"
+              className="w-full bg-transparent text-sm font-medium text-white outline-none placeholder:text-[#c8c8c8]"
             />
           </div>
         </div>
@@ -240,8 +287,8 @@ export function SettingsForm({
         <div className="flex w-full flex-col items-start">
           <button
             type="submit"
-            disabled={usernamePending}
-            className="cursor-pointer rounded-lg bg-surface-raised px-6 py-3 text-sm font-bold text-[#c8c8c8] transition-colors hover:text-white disabled:cursor-not-allowed disabled:opacity-45"
+            disabled={!usernameDirty || usernamePending}
+            className="cursor-pointer rounded-lg bg-surface-raised px-6 py-3 text-sm font-bold text-[#c8c8c8] transition-colors hover:text-white disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:text-[#c8c8c8]"
           >
             {usernamePending ? "Changing..." : "Change username"}
           </button>

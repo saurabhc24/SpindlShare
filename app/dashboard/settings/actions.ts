@@ -152,6 +152,8 @@ export async function changeUsername(
   revalidatePath(`/${previousNormalized}`);
   revalidatePath(`/${normalized}`);
   revalidatePath("/dashboard");
+  // So this page's placeholder and its disabled button pick up the new handle.
+  revalidatePath("/dashboard/settings");
 
   return { success: `Your page is now at /${normalized}.` };
 }
