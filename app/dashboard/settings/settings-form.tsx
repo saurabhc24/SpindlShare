@@ -268,7 +268,7 @@ export function SettingsForm({
               autoComplete="off"
               autoCapitalize="none"
               spellCheck={false}
-              className="w-full bg-transparent text-sm font-medium text-white outline-none placeholder:text-[#c8c8c8]"
+              className="w-full bg-transparent text-sm font-medium text-white outline-none placeholder:text-[#68625a]"
             />
           </div>
         </div>
