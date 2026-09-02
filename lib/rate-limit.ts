@@ -194,6 +194,10 @@ export const RATE_LIMITS = {
   // walk of the namespace impractical.
   usernameCheckPerIp: { limit: 60, windowSeconds: 60 },
 
+  // An upload costs storage, so it is tighter than the rest of the profile form.
+  avatarPerAccount: { limit: 12, windowSeconds: 60 * 60 },
+  avatarPerIp: { limit: 24, windowSeconds: 60 * 60 },
+
   profilePerAccount: { limit: 30, windowSeconds: 60 * 60 },
   profilePerIp: { limit: 60, windowSeconds: 60 * 60 },
 

@@ -68,6 +68,8 @@ app/(auth)/                       login, magic-link verify, username onboarding
 app/dashboard/page.tsx            the paste-a-link screen a new account lands on
 app/dashboard/paste-link-form.tsx the link row, shared by that screen and the board
 app/dashboard/settings-menu.tsx   the header gear: Admin (admins only), Settings, Sign out
+app/dashboard/settings/          profile, username, and self-serve deletion
+app/api/avatar/                  photo upload to Vercel Blob
 app/dashboard/welcome-moment.tsx  the greeting a new account gets, once
 app/(legal)/                      privacy policy and terms
 app/admin/                        moderation and site overview
@@ -147,6 +149,18 @@ row in the same transaction — otherwise an old link would resolve to the wrong
 profile. Casing variants of a live URL permanently redirect to the canonical
 lowercase form, which also stops `/demo`, `/Demo` and `/DEMO` from each occupying
 a separate ISR cache entry.
+
+### Settings
+
+Photo uploads go to Vercel Blob and need `BLOB_READ_WRITE_TOKEN`; without it the
+route answers 501 and says so rather than failing silently. The route checks type
+and size itself — `accept="image/*"` only filters the picker, it promises nothing
+about what arrives. The returned URL is held in the form and written with the
+rest of the profile, so choosing a photo and then leaving changes nothing.
+
+Deleting your own account uses the same reversible flag an admin's delete sets,
+so support can still undo it. It asks for the username to be typed, then clears
+every session.
 
 ### Moderation and admin
 
@@ -346,11 +360,6 @@ region, and which rate-limit backend is live.
   to someone who has already connected a service.
 - **Somewhere for the paste-a-link control to go.** The connect screen draws it,
   because the design does, but it leads nowhere until that flow is designed.
-- **Avatar upload.** Avatars are taken from the login provider;
-  `BLOB_READ_WRITE_TOKEN` is reserved for uploading your own.
 - **Themes.** `Profile.theme` exists in the schema with no UI behind it.
-- **Self-serve account deletion.** Only an admin can delete an account today —
-  though the mechanism is now reversible, so the hard part is the product
-  decision rather than the schema.
 - **A dashboard view of the visit counter.** `DailyVisit` holds a daily series
   and `/admin` only shows the total.

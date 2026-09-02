@@ -4,17 +4,22 @@ import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import { z } from "zod";
 
+import { signOut } from "@/lib/auth";
 import { requireProfile } from "@/lib/dal";
 import { prisma } from "@/lib/prisma";
 import { RATE_LIMITS, rateLimitAll } from "@/lib/rate-limit";
 import { validateUsername } from "@/lib/username";
 
+import { BIO_MAX } from "./limits";
+
 export type ActionState = { error?: string; success?: string } | undefined;
 
 const profileSchema = z.object({
   displayName: z.string().trim().max(50, "Display name is too long.").optional(),
-  bio: z.string().trim().max(280, "Bio must be 280 characters or fewer.").optional(),
+  bio: z.string().trim().max(BIO_MAX, `Bio must be ${BIO_MAX} characters or fewer.`).optional(),
   isPublic: z.boolean(),
+  // Written by the upload route, so this only ever carries a URL we produced.
+  avatarUrl: z.string().url().max(500).optional().or(z.literal("")),
 });
 
 async function clientIpFromHeaders() {
@@ -45,12 +50,13 @@ export async function updateProfile(
     bio: formData.get("bio") ?? undefined,
     // An unchecked checkbox submits nothing at all.
     isPublic: formData.get("isPublic") === "on",
+    avatarUrl: formData.get("avatarUrl") ?? undefined,
   });
   if (!parsed.success) {
     return { error: parsed.error.issues[0].message };
   }
 
-  const { displayName, bio, isPublic } = parsed.data;
+  const { displayName, bio, isPublic, avatarUrl } = parsed.data;
 
   await prisma.profile.update({
     where: { userId: user.id },
@@ -58,6 +64,8 @@ export async function updateProfile(
       displayName: displayName || null,
       bio: bio || null,
       isPublic,
+      // Absent means the picker was never touched; keep whatever is stored.
+      ...(avatarUrl === undefined ? {} : { avatarUrl: avatarUrl || null }),
     },
   });
 
@@ -155,4 +163,55 @@ function isUniqueConstraintError(error: unknown): boolean {
     "code" in error &&
     (error as { code?: string }).code === "P2002"
   );
+}
+
+/**
+ * Self-serve version of what an admin can already do: reversible, so support can
+ * undo a misclick, and it signs every open session out at once.
+ */
+export async function deleteMyAccount(
+  _prev: ActionState,
+  formData: FormData
+): Promise<ActionState> {
+  const { user, profile } = await requireProfile();
+
+  const limited = await rateLimitAll([
+    { key: `profile:user:${user.id}`, rule: RATE_LIMITS.profilePerAccount },
+    { key: `profile:ip:${await clientIpFromHeaders()}`, rule: RATE_LIMITS.profilePerIp },
+  ]);
+  if (!limited.ok) return { error: "Too many attempts. Please wait a moment." };
+
+  // Typed rather than clicked. It is reversible, but it still takes the page
+  // down and signs the person out of every device.
+  const confirmation = String(formData.get("confirmUsername") ?? "").trim();
+  if (confirmation.toLowerCase() !== profile.usernameNormalized) {
+    return { error: "Type your username exactly to confirm." };
+  }
+
+  const account = await prisma.user.findUnique({
+    where: { id: user.id },
+    select: { email: true, deletedAt: true },
+  });
+  if (account?.deletedAt) return { error: "This account is already deleted." };
+
+  await prisma.$transaction([
+    prisma.user.update({
+      where: { id: user.id },
+      data: {
+        deletedAt: new Date(),
+        // `email` is unique, so parking it here is what lets the address sign
+        // up again -- and lets a restore put it back.
+        deletedEmail: account?.email ?? null,
+        email: null,
+      },
+    }),
+    prisma.session.deleteMany({ where: { userId: user.id } }),
+  ]);
+
+  revalidatePath(`/${profile.usernameNormalized}`);
+  revalidatePath("/admin");
+
+  // Sessions are already gone; this clears the cookie and lands them home.
+  await signOut({ redirectTo: "/" });
+  return { success: "Account deleted." };
 }
