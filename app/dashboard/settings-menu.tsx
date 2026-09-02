@@ -1,12 +1,23 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 
+/** Shared so the sign-out form, passed in as children, matches the links here. */
+export const MENU_ITEM_CLASS =
+  "block w-full cursor-pointer rounded-[8px] px-3 py-2 text-left text-sm font-medium whitespace-nowrap text-[#c8c8c8] transition-colors hover:bg-surface-raised hover:text-white";
+
 /**
- * The gear in the header. It holds sign-out today and is where the rest of the
- * settings will land; the form itself stays on the server, passed in as children.
+ * The gear in the header. Sign-out stays on the server and arrives as children;
+ * Admin only renders for an admin, matching the 404 the route itself gives.
  */
-export function SettingsMenu({ children }: { children: React.ReactNode }) {
+export function SettingsMenu({
+  isAdmin,
+  children,
+}: {
+  isAdmin: boolean;
+  children: React.ReactNode;
+}) {
   const [open, setOpen] = useState(false);
   const wrap = useRef<HTMLDivElement>(null);
 
@@ -43,8 +54,26 @@ export function SettingsMenu({ children }: { children: React.ReactNode }) {
       {open && (
         <div
           role="menu"
-          className="absolute right-0 top-full z-20 mt-3 min-w-[176px] rounded-[12px] border border-[var(--line)] bg-[var(--panel-solid)] p-1.5"
+          className="absolute right-0 top-full z-20 mt-3 flex min-w-[176px] flex-col gap-0.5 rounded-[12px] border border-[var(--line)] bg-[var(--panel-solid)] p-1.5"
         >
+          {isAdmin && (
+            <Link
+              href="/admin"
+              role="menuitem"
+              onClick={() => setOpen(false)}
+              className={MENU_ITEM_CLASS}
+            >
+              Admin
+            </Link>
+          )}
+          <Link
+            href="/dashboard/settings"
+            role="menuitem"
+            onClick={() => setOpen(false)}
+            className={MENU_ITEM_CLASS}
+          >
+            Settings
+          </Link>
           {children}
         </div>
       )}

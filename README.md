@@ -67,6 +67,7 @@ app/(auth)/layout.tsx             one backdrop for all three auth screens
 app/(auth)/                       login, magic-link verify, username onboarding
 app/dashboard/page.tsx            the paste-a-link screen a new account lands on
 app/dashboard/paste-link-form.tsx the link row, shared by that screen and the board
+app/dashboard/settings-menu.tsx   the header gear: Admin (admins only), Settings, Sign out
 app/dashboard/welcome-moment.tsx  the greeting a new account gets, once
 app/(legal)/                      privacy policy and terms
 app/admin/                        moderation and site overview
@@ -170,6 +171,9 @@ writes: anyone who finds a way to write to the database still can't promote
 themselves, and there is no "grant admin" code path to get wrong. The cost is a
 redeploy to change the list, which is the right trade for a list that should
 change roughly never.
+
+The header gear links to `/admin` only for an admin, which matches rather than
+replaces that gate -- hiding the link is a courtesy, the 404 is the control.
 
 The gate responds **404, not 403**, so a signed-in non-admin sees exactly what a
 logged-out stranger sees and the area isn't discoverable by probing.

@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { signOut } from "@/lib/auth";
+import { getAdminUser } from "@/lib/admin";
 import { requireProfile } from "@/lib/dal";
 import { prisma } from "@/lib/prisma";
 import { providerSlug } from "@/lib/providers";
@@ -8,7 +9,7 @@ import { syncFailureHint } from "@/lib/sync-status";
 
 import { PasteLinkForm } from "./paste-link-form";
 import { PlaylistBoard, type PlaylistRow } from "./playlist-board";
-import { SettingsMenu } from "./settings-menu";
+import { MENU_ITEM_CLASS, SettingsMenu } from "./settings-menu";
 import { WelcomeMoment } from "./welcome-moment";
 
 /**
@@ -35,7 +36,8 @@ const ERROR_MESSAGES: Record<string, string> = {
 export default async function DashboardPage(props: PageProps<"/dashboard">) {
   const { user, profile } = await requireProfile();
 
-  const [connections, playlists] = await Promise.all([
+  const [admin, connections, playlists] = await Promise.all([
+    getAdminUser(),
     prisma.connectedAccount.findMany({
       where: { userId: user.id },
       select: { provider: true, lastSyncStatus: true },
@@ -126,17 +128,14 @@ export default async function DashboardPage(props: PageProps<"/dashboard">) {
             </span>
           </Link>
 
-          <SettingsMenu>
+          <SettingsMenu isAdmin={Boolean(admin)}>
             <form
               action={async () => {
                 "use server";
                 await signOut({ redirectTo: "/" });
               }}
             >
-              <button
-                type="submit"
-                className="w-full cursor-pointer rounded-[8px] px-3 py-2 text-left text-sm font-medium whitespace-nowrap text-[#c8c8c8] transition-colors hover:bg-surface-raised hover:text-white"
-              >
+              <button type="submit" role="menuitem" className={MENU_ITEM_CLASS}>
                 Sign out
               </button>
             </form>
