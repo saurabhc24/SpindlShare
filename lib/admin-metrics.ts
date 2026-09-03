@@ -34,9 +34,15 @@ export type AdminMetrics = {
   activeUsers: number;
   suspendedUsers: number;
   deletedUsers: number;
+  /** Visits over 30 days against the 30 before, for the stat tile's arrow. */
+  visitTrend: SignupTrend;
+  /** Signups over the same pair of windows, so the two tiles are comparable. */
+  signupTrend: SignupTrend;
   week: SignupTrend;
   month: SignupTrend;
 };
+
+type VisitBuckets = { current: number; previous: number };
 
 type Buckets = {
   weekCurrent: number;
@@ -57,6 +63,7 @@ function trend(current: number, previous: number): SignupTrend {
 export async function getAdminMetrics(): Promise<AdminMetrics> {
   const [
     totalVisits,
+    visitBuckets,
     totalUsers,
     activeUsers,
     suspendedUsers,
@@ -68,6 +75,18 @@ export async function getAdminMetrics(): Promise<AdminMetrics> {
         SELECT coalesce(sum("views"), 0)::int AS n FROM "DailyVisit"
       `
       .then((rows) => rows[0]?.n ?? 0),
+    // Same two windows as signups, so the two tiles' arrows mean the same thing.
+    prisma.$queryRaw<VisitBuckets[]>`
+      SELECT
+        coalesce(sum("views") FILTER (
+          WHERE "day" >= (now() - interval '30 days')::date
+        ), 0)::int AS "current",
+        coalesce(sum("views") FILTER (
+          WHERE "day" >= (now() - interval '60 days')::date
+            AND "day" <  (now() - interval '30 days')::date
+        ), 0)::int AS "previous"
+      FROM "DailyVisit"
+    `,
     prisma.user.count(),
     // Counted directly rather than as total minus suspended minus deleted: an
     // account can be both suspended and deleted, and that arithmetic would
@@ -110,6 +129,7 @@ export async function getAdminMetrics(): Promise<AdminMetrics> {
   ]);
 
   const row = buckets[0];
+  const visits = visitBuckets[0];
 
   return {
     totalVisits,
@@ -117,6 +137,8 @@ export async function getAdminMetrics(): Promise<AdminMetrics> {
     activeUsers,
     suspendedUsers,
     deletedUsers,
+    visitTrend: trend(visits?.current ?? 0, visits?.previous ?? 0),
+    signupTrend: trend(row?.monthCurrent ?? 0, row?.monthPrevious ?? 0),
     week: trend(row?.weekCurrent ?? 0, row?.weekPrevious ?? 0),
     month: trend(row?.monthCurrent ?? 0, row?.monthPrevious ?? 0),
   };

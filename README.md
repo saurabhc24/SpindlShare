@@ -176,11 +176,23 @@ every session.
 
 ### Moderation and admin
 
-`/admin` lists every profile with its playlist and connection counts, plus
+`/admin` lists every profile with its playlist count and join date, plus
 site-wide totals, and can suspend, restore or delete an account.
 
+Ten profiles to a page, newest first, because nobody moderates by scrolling —
+they arrive knowing which account they want. Search covers username, display
+name and email in one pass, and is a GET form, so a search is a URL: shareable,
+and the back button steps out of it.
+
+Deleting from here still asks for the username to be typed, which the design does
+not show. It is a destructive action reached by one click on a list of strangers,
+and the row it belongs to is easy to mistake for its neighbour.
+
 The numbers at the head of the page are visits, signups, active, suspended and
-deleted, then signups week-on-week and month-on-month. A trend is shown as a
+deleted, as five tiles. Only visits and signups carry a percentage: the arrow
+compares the last 30 days with the 30 before, and there is no stored snapshot of
+who was active or suspended a month ago, so those tiles show the count alone
+rather than an invented change. A trend is shown as a
 pair of counts rather than one number, because eleven signups this week is good
 or bad entirely depending on last week; where the previous period was zero the
 percentage is withheld rather than rendered as +100% or +∞, both of which would
