@@ -9,6 +9,7 @@ import {
   type ActionState,
 } from "./actions";
 import { BIO_MAX } from "./limits";
+import { resizeAvatar } from "./resize-image";
 
 const FIELD =
   "w-full rounded-lg border border-[#333] bg-transparent p-3 text-sm font-medium text-white outline-none transition-colors placeholder:text-[#68625a] focus:border-[var(--accent)]";
@@ -92,8 +93,11 @@ export function SettingsForm({
     setPhotoError(null);
     setUploading(true);
     try {
+      // Shrunk here so a 4MB photo does not become a 4MB upload, a 4MB blob,
+      // and 4MB served to render a 32px avatar.
+      const upload = await resizeAvatar(file);
       const body = new FormData();
-      body.append("file", file);
+      body.append("file", upload);
       const response = await fetch("/api/avatar", { method: "POST", body });
       const data = await response.json().catch(() => null);
       if (!response.ok) {

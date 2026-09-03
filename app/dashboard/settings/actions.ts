@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import { z } from "zod";
 
+import { deleteReplacedAvatar } from "@/lib/avatar-storage";
 import { signOut } from "@/lib/auth";
 import { requireProfile } from "@/lib/dal";
 import { prisma } from "@/lib/prisma";
@@ -68,6 +69,12 @@ export async function updateProfile(
       ...(avatarUrl === undefined ? {} : { avatarUrl: avatarUrl || null }),
     },
   });
+
+  // After the save, not before: an orphaned blob is untidy, but deleting first
+  // and then failing to save would leave the profile pointing at nothing.
+  if (avatarUrl !== undefined) {
+    await deleteReplacedAvatar(profile.avatarUrl, avatarUrl || null);
+  }
 
   // The public page is edge-cached, so it has to be invalidated explicitly or
   // the change won't show up for visitors.

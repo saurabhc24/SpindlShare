@@ -158,6 +158,18 @@ and size itself — `accept="image/*"` only filters the picker, it promises noth
 about what arrives. The returned URL is held in the form and written with the
 rest of the profile, so choosing a photo and then leaving changes nothing.
 
+The photo is downscaled to 512px and re-encoded as WebP in the browser before it
+is sent — a 10MB phone photo lands at about 80KB. That is mostly about what gets
+*served*: the same file renders a 32px header avatar on every page view. The
+server-side type and size limits stay as the real guard, since a canvas is
+trivially bypassed. GIFs skip the resize, which would flatten them to one frame.
+
+Replacing a photo deletes the blob it replaced, after the profile row is saved —
+an orphaned blob is untidy, but deleting first and then failing to save would
+leave the profile pointing at nothing. Only blobs in our own store are eligible:
+`avatarUrl` may still hold the Google account picture seeded at signup, and that
+one is not ours to delete. `npm run check:avatarblob` covers that distinction.
+
 Deleting your own account uses the same reversible flag an admin's delete sets,
 so support can still undo it. It asks for the username to be typed, then clears
 every session.
