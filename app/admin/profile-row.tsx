@@ -147,34 +147,37 @@ export function ProfileRow({ profile }: { profile: AdminProfile }) {
       {confirmingDelete && !deleted && (
         <form action={deleteAction} className="note note-error mt-1 !p-3">
           <input type="hidden" name="profileId" value={profile.id} />
-          <p className="text-xs">
-            Signs the account out, takes its page down and frees its email
-            address. Playlists are kept, and this can be undone from here. Type{" "}
-            <span className="font-medium text-white">
-              {profile.usernameNormalized}
-            </span>{" "}
-            to confirm.
+          {/* The action still requires the username, so the click on this
+              button is what supplies it now that nothing is typed. */}
+          <input
+            type="hidden"
+            name="confirmUsername"
+            value={profile.usernameNormalized}
+          />
+          <p className="text-sm font-bold text-white">
+            Delete {profile.displayName ?? profile.usernameNormalized}{" "}
+            permanently?
           </p>
-          <div className="mt-2 flex flex-wrap items-center gap-2">
-            <input
-              name="confirmUsername"
-              autoComplete="off"
-              placeholder="Username"
-              className={`${SMALL_FIELD} flex-1`}
-            />
-            <input
-              name="reason"
-              placeholder="Reason (optional)"
-              maxLength={280}
-              className={`${SMALL_FIELD} flex-1`}
-            />
+          <p className="mt-1 text-xs">
+            Their profile, shares and listening history go with it, and this
+            can&apos;t be undone from their side. If you only need them off the
+            platform for now, suspend instead.
+          </p>
+          <div className="mt-3 flex flex-wrap items-center gap-2">
             <button
               type="submit"
               disabled={deletePending}
-              className={`${ACTION_BUTTON} shrink-0 text-white`}
+              className={`${ACTION_BUTTON} shrink-0 border-2 border-transparent text-white`}
               style={{ background: "var(--danger)" }}
             >
-              {deletePending ? "Deleting..." : "Delete account"}
+              {deletePending ? "Deleting..." : "Delete permanently"}
+            </button>
+            <button
+              type="button"
+              onClick={() => setConfirmingDelete(false)}
+              className={`${ACTION_BUTTON} shrink-0 border-2 border-[#333] text-[#c8c8c8] hover:text-white`}
+            >
+              Keep
             </button>
           </div>
         </form>

@@ -184,9 +184,14 @@ they arrive knowing which account they want. Search covers username, display
 name and email in one pass, and is a GET form, so a search is a URL: shareable,
 and the back button steps out of it.
 
-Deleting from here still asks for the username to be typed, which the design does
-not show. It is a destructive action reached by one click on a list of strangers,
-and the row it belongs to is easy to mistake for its neighbour.
+Deleting from here confirms in place: the card names the person, says what goes
+with them, and offers "Delete permanently" against "Keep". The username is still
+submitted -- the action validates it -- but as a hidden field rather than
+something to retype, so the click on the named button is the confirmation.
+
+The copy says the deletion can't be undone *from their side*, which is the true
+version: the row is soft-deleted, so an admin can still restore it from this
+page, but the person themselves has no way back.
 
 The numbers at the head of the page are visits, signups, active, suspended and
 deleted, as five tiles. Only visits and signups carry a percentage: the arrow
