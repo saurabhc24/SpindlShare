@@ -56,10 +56,17 @@ export function PlayerOverlay({
     const host = hostRef.current;
     if (!item || !embed || !host) return;
 
+    // The provider's script replaces whatever node it is given. React must not
+    // be that node's owner: it would later try to remove children that are no
+    // longer its own, which throws NotFoundError and takes the page down with
+    // an error boundary. So the script gets a plain div React never renders.
+    const mount = document.createElement("div");
+    host.appendChild(mount);
+
     const teardown = mountEmbedPlayer({
       provider: item.provider,
       externalId: item.externalId,
-      container: host,
+      container: mount,
       height: embed.height,
       onPlayingChange: handlePlayingChange,
       fallbackSrc: embed.src,
@@ -67,9 +74,9 @@ export function PlayerOverlay({
 
     return () => {
       teardown();
-      // The provider replaced the host with its own iframe; clear it so the
-      // next playlist starts from an empty container rather than two players.
-      host.replaceChildren();
+      // Removing our own node, not React's: whatever the provider did inside it
+      // goes with it, and the next playlist starts from an empty host.
+      mount.remove();
     };
   }, [item, embed, handlePlayingChange]);
 

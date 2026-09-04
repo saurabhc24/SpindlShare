@@ -111,7 +111,10 @@ const API_TIMEOUT_MS = 2500;
 function mountFallback(container: HTMLElement, src: string, height: number) {
   if (container.childElementCount > 0) return;
   const frame = document.createElement("iframe");
-  frame.src = src;
+  // Attached blank, then navigated with replace(): assigning .src pushes an
+  // entry onto the joint session history, so Back would step through the
+  // embeds a visitor opened instead of leaving the page.
+  frame.src = "about:blank";
   frame.width = "100%";
   frame.height = String(height);
   frame.style.border = "0";
@@ -119,6 +122,7 @@ function mountFallback(container: HTMLElement, src: string, height: number) {
   frame.allow =
     "autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture";
   container.appendChild(frame);
+  frame.contentWindow?.location.replace(src);
 }
 
 /**

@@ -271,6 +271,15 @@ Labels are pinned to each card's top-right corner: that corner is the strip a
 card still shows past the one in front of it, and anchoring right means the title
 does not slide as a card advances to the front.
 
+Two things about the embedded player are load-bearing for the back button. The
+fallback iframe is attached blank and then navigated with `location.replace`,
+because assigning `.src` on a fresh iframe pushes onto the joint session history
+-- Back would step through the embeds a visitor opened instead of leaving the
+page. And the provider's script is handed a plain div created outside React,
+since it replaces whatever node it is given: leaving React as that node's owner
+made React later remove children it no longer had, throwing NotFoundError and
+taking the whole page down through the error boundary.
+
 ### Handling traffic and abuse
 
 The public profile page is the highest-traffic route, so it's ISR-cached and
