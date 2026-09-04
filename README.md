@@ -248,6 +248,29 @@ the public profile lookup, the rename redirect, the OG image, sign-in, and the
 cleanup cron — which would otherwise hard-delete a flagged account with no
 username after 30 days and walk the count backwards.
 
+### The public profile
+
+Playlists are a deck of covers receding up and to the right, scrolled through
+rather than scrolled past. Three states, one click apart: stacked, lifted (title,
+service and track count), then the provider's player. Clicking off a lifted card
+returns it to the stack.
+
+The scroll is driven from wheel and touch rather than a scrollbar, because a
+scrollbar needs a tall spacer to scroll against and can still hit its end; the
+deck's position wraps modulo the playlist count, so it is endless in both
+directions without the list ever being duplicated. Both ends of the visible run
+fade, so cards dissolve in and out instead of popping at the window edge.
+
+Card size and step are derived from the measured stage width rather than tuned
+per breakpoint -- the run is `cardSize + VISIBLE` steps wide, so solving for the
+step is what makes it fit at any width without a new constant for each new phone.
+A lifted card translates to the stage centre rather than a fixed offset from
+wherever it sat, which is what keeps it centred on a narrow screen.
+
+Labels are pinned to each card's top-right corner: that corner is the strip a
+card still shows past the one in front of it, and anchoring right means the title
+does not slide as a card advances to the front.
+
 ### Handling traffic and abuse
 
 The public profile page is the highest-traffic route, so it's ISR-cached and

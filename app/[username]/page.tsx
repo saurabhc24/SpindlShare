@@ -8,16 +8,8 @@ import { surfaceLabel } from "@/lib/playlist-link";
 import { normalizeUsername } from "@/lib/username";
 import { providerLabel } from "@/components/provider-badge";
 
-import { Showcase, type Shelf } from "./showcase";
-
-/**
- * A shelf holds at most this many playlists.
- *
- * The scene lays a shelf out as a single row and then scales that row to fit, so
- * a shelf of twenty would be scaled down to illegibility. Three matches the
- * design and keeps every cover readable once a shelf is focused.
- */
-const MAX_PER_SHELF = 3;
+import { DeckProfile } from "./deck-profile";
+import { type ShowcaseItem } from "./showcase";
 
 // Short ISR window as a safety net; dashboard mutations call revalidatePath on
 // this route so edits show up immediately rather than waiting this out.
@@ -84,11 +76,8 @@ export default async function PublicProfilePage(
   const { profile, playlists } = data;
   const displayName = profile.displayName || profile.username;
 
-  // SpindlShare has no notion of a named shelf, so the closest honest grouping is the
-  // service a playlist came from -- a real label, from data the user already
-  // has, rather than an invented one. Within a shelf the user's own ordering is
-  // preserved; a provider with more than MAX_PER_SHELF spills onto further
-  // shelves of the same name rather than crowding one row.
+  // Grouped by the service a playlist came from -- the only grouping the data
+  // actually supports, rather than an invented one.
   const byProvider = new Map<string, typeof playlists>();
   for (const playlist of playlists) {
     const group = byProvider.get(playlist.provider) ?? [];
@@ -96,40 +85,33 @@ export default async function PublicProfilePage(
     byProvider.set(playlist.provider, group);
   }
 
-  const shelves: Shelf[] = [];
-  for (const [provider, group] of byProvider) {
-    for (let i = 0; i < group.length; i += MAX_PER_SHELF) {
-      shelves.push({
-        name: providerLabel(provider as (typeof playlists)[number]["provider"]),
-        items: group.slice(i, i + MAX_PER_SHELF).map((playlist) => ({
-          id: playlist.id,
-          title: playlist.title,
-          provider: playlist.provider,
-          // "YouTube Music" where that is the playlist's real home.
-          providerLabel: surfaceLabel(
-            playlist.provider,
-            playlist.externalUrl,
-            providerLabel(playlist.provider)
-          ),
-          coverImageUrl: playlist.coverImageUrl,
-          trackCount: playlist.trackCount,
-          externalUrl: playlist.externalUrl,
-          externalId: playlist.externalId,
-        })),
-      });
-    }
-  }
+  // One card per playlist, grouped by service so a person's Spotify and YouTube
+  // sets stay together in the deck. The user's own ordering holds within a group.
+  const items: ShowcaseItem[] = [...byProvider.values()].flat().map((playlist) => ({
+    id: playlist.id,
+    title: playlist.title,
+    provider: playlist.provider,
+    // "YouTube Music" where that is the playlist's real home.
+    providerLabel: surfaceLabel(
+      playlist.provider,
+      playlist.externalUrl,
+      providerLabel(playlist.provider)
+    ),
+    coverImageUrl: playlist.coverImageUrl,
+    trackCount: playlist.trackCount,
+    externalUrl: playlist.externalUrl,
+    externalId: playlist.externalId,
+  }));
 
-  if (shelves.length > 0) {
+  if (items.length > 0) {
     return (
       <div className="flex-1">
-        <Showcase
+        <DeckProfile
           displayName={displayName}
           handle={`@${profile.username}`}
           avatarUrl={profile.avatarUrl}
           bio={profile.bio}
-          shelves={shelves}
-          totalCount={playlists.length}
+          items={items}
           shareUrl={absoluteUrl(`/${profile.usernameNormalized}`)}
           shareDisplay={displayUrl(`/${profile.usernameNormalized}`)}
         />
