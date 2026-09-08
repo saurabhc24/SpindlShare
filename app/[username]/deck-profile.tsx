@@ -29,6 +29,10 @@ export function DeckProfile({
   shareUrl: string;
   shareDisplay: string;
 }) {
+  // Tracks are summed from what each playlist reports. A provider that gives no
+  // count contributes nothing rather than breaking the line, so the total is
+  // omitted entirely when nothing reported one.
+  const trackTotal = items.reduce((sum, item) => sum + (item.trackCount ?? 0), 0);
   const [copied, setCopied] = useState(false);
 
   async function share() {
@@ -57,40 +61,37 @@ export function DeckProfile({
       {/* pointer-events-none so the deck stays draggable underneath; the button
           re-enables them for itself. */}
       <header className="pointer-events-none absolute inset-x-0 top-0 z-[2000] flex items-start gap-3 p-6">
-        <span className="relative block size-14 shrink-0 overflow-hidden rounded-full bg-[var(--panel-solid)] ring-1 ring-white/10">
+        <span className="relative block size-8 shrink-0 overflow-hidden rounded-full bg-[var(--panel-solid)] ring-1 ring-white/10">
           {avatarUrl ? (
             /* eslint-disable-next-line @next/next/no-img-element */
             <img
               src={avatarUrl}
               alt=""
-              width={56}
-              height={56}
+              width={32}
+              height={32}
               className="size-full object-cover"
             />
           ) : (
-            <span className="display flex size-full items-center justify-center text-2xl text-white">
+            <span className="flex size-full items-center justify-center text-xs font-medium text-accent">
               {displayName.charAt(0).toUpperCase()}
             </span>
           )}
         </span>
 
-        <span className="flex min-w-0 flex-1 flex-col gap-1">
-          <h1 className="heading truncate text-[22px] leading-none text-white">
-            {displayName}
-          </h1>
-          <span className="flex items-center gap-2 text-xs text-[#c8c8c8]">
-            <span className="truncate text-accent">{handle}</span>
-            <span aria-hidden="true">·</span>
-            <span className="shrink-0">
-              {count} {count === 1 ? "playlist" : "playlists"}
-            </span>
+        <span className="flex min-w-0 flex-1 flex-col justify-center gap-2">
+          <span className="truncate text-sm font-medium text-white">
+            {handle.replace(/^@/, "")}
+          </span>
+          <span className="truncate text-xs text-[#c8c8c8]">
+            {count} {count === 1 ? "playlist" : "playlists"}
+            {trackTotal > 0 && ` · ${trackTotal} tracks`}
           </span>
         </span>
 
         <button
           type="button"
           onClick={share}
-          className="pointer-events-auto shrink-0 cursor-pointer rounded-full px-4 py-2.5 text-xs font-bold text-[#151210] transition-transform hover:-translate-y-px"
+          className="pointer-events-auto shrink-0 cursor-pointer rounded-[8px] px-4 py-3 text-sm font-bold text-[#313131] transition-transform hover:-translate-y-px"
           style={{ background: "var(--gold)", boxShadow: "var(--gold-shadow)" }}
         >
           {copied ? "Copied" : "Share"}
@@ -98,7 +99,7 @@ export function DeckProfile({
       </header>
 
       {bio && (
-        <p className="pointer-events-none absolute inset-x-0 top-[104px] z-[2000] px-6 text-xs leading-relaxed text-[#c8c8c8]">
+        <p className="pointer-events-none absolute inset-x-0 top-[88px] z-[2000] px-6 text-xs leading-relaxed text-[#c8c8c8]">
           {bio}
         </p>
       )}

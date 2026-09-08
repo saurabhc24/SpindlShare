@@ -22,11 +22,24 @@ const PROVIDER_DOT: Record<MusicProvider, string> = {
   OTHER: "oklch(0.86 0.08 82)",
 };
 
-/** Card geometry. Cards recede up and to the right, as in the reference. */
-const STEP_X = 76;
-const STEP_Y = -58;
-/** Cards drawn ahead of the front one. Also what centres the run on the stage. */
-const VISIBLE = 6;
+/**
+ * Card geometry, as ratios rather than pixels.
+ *
+ * The design draws a 184px card stepping 40px on both axes inside a 504px box.
+ * Keeping those as fractions is what lets the deck scale with the screen: the
+ * card is sized from the viewport and every offset follows from it.
+ */
+const STEP_RATIO = 40 / 184;
+/** Cards drawn behind the front one. Nine in the design, front card included. */
+const VISIBLE = 8;
+/** Header is taller than the footer, so the free space is not the viewport's middle. */
+const CHROME_OFFSET = 26;
+/**
+ * How far into the run the stage's centre falls. Below VISIBLE/2, so the front
+ * card sits left of centre with room to spare and the far cards -- the ones the
+ * design lets bleed off -- take the overflow.
+ */
+const FRONT_INSET = 2.2;
 
 /**
  * Fades a card in at the far end and out at the near one, so neither end pops.
@@ -44,17 +57,28 @@ function edgeFade(depth: number): number {
   return 1;
 }
 
-function hueFromTitle(title: string): number {
-  let hash = 0;
-  for (let i = 0; i < title.length; i++) {
-    hash = (hash * 31 + title.charCodeAt(i)) % 360;
+/**
+ * A stable hue per playlist for covers with no artwork.
+ *
+ * Keyed on the id, not the title: two playlists called "Liked Songs" are two
+ * different playlists, and hashing the title gave them the same colour and made
+ * the deck look like one card repeated.
+ */
+function hueFromKey(key: string): number {
+  // FNV-1a. The old `hash * 31 % 360` barely moved between neighbouring cuids --
+  // they share a long prefix, so two playlists created seconds apart came out
+  // the same colour. Taking the modulo only at the end is what spreads them.
+  let hash = 0x811c9dc5;
+  for (let i = 0; i < key.length; i++) {
+    hash ^= key.charCodeAt(i);
+    hash = Math.imul(hash, 0x01000193) >>> 0;
   }
-  return hash;
+  return hash % 360;
 }
 
-function coverGradient(title: string): string {
-  const hue = hueFromTitle(title);
-  return `linear-gradient(150deg, oklch(0.62 0.16 ${hue}), oklch(0.42 0.13 ${(hue + 40) % 360}))`;
+function coverGradient(key: string): string {
+  const hue = hueFromKey(key);
+  return `linear-gradient(150deg, oklch(0.68 0.19 ${hue}), oklch(0.5 0.16 ${(hue + 30) % 360}))`;
 }
 
 export function Deck({ items }: { items: ShowcaseItem[] }) {
@@ -65,6 +89,7 @@ export function Deck({ items }: { items: ShowcaseItem[] }) {
   const [playing, setPlaying] = useState<ShowcaseItem | null>(null);
   const stageRef = useRef<HTMLDivElement | null>(null);
   const [stageWidth, setStageWidth] = useState(0);
+  const [stageHeight, setStageHeight] = useState(0);
 
   const count = items.length;
 
@@ -75,32 +100,34 @@ export function Deck({ items }: { items: ShowcaseItem[] }) {
     if (!stage) return;
     const observer = new ResizeObserver(([entry]) => {
       setStageWidth(entry.contentRect.width);
+      setStageHeight(entry.contentRect.height);
     });
     observer.observe(stage);
     return () => observer.disconnect();
   }, []);
 
-  // Narrow screens get a smaller card and a shorter step, so the whole run
-  // still fits. 0 means "not measured yet" -- fall back to the desktop size.
-  const narrow = stageWidth > 0 && stageWidth < 640;
-  const cardSize = narrow ? Math.min(220, stageWidth - 120) : 300;
-  const scale = cardSize / 300;
+  // The design's proportions, solved for the space available. The run spans
+  // card + VISIBLE steps, and a step is STEP_RATIO of a card, so the card falls
+  // out of one equation -- no per-breakpoint constants to re-guess.
+  // The design's block is 504 wide in a 393 frame -- it deliberately overflows
+  // the screen, with the far cards running off the right edge. Sizing from the
+  // frame reproduces that: card = 184/393 of the width.
+  const usable = Math.max(0, stageWidth - 48);
+  // Also capped by height: the run is card + VISIBLE steps tall as well as wide,
+  // and on a short landscape window the width-derived size runs off the bottom.
+  const roomForRun = Math.max(0, stageHeight - 220) / (1 + VISIBLE * STEP_RATIO);
+  const cardSize = Math.min(
+    360,
+    Math.max(120, Math.min(usable * (184 / (393 - 48)), roomForRun || Infinity))
+  );
+  const scale = cardSize / 184;
+  // Equal on both axes: the design's diagonal is 45 degrees.
+  const stepX = cardSize * STEP_RATIO;
+  const stepY = -stepX;
 
-  // The deck spans cardSize + VISIBLE steps. Rather than tune that by hand,
-  // derive the step from the room actually left over, so it fits by construction
-  // at any width and never has to be re-guessed for a new phone size.
-  const stepX = narrow
-    ? Math.max(18, (stageWidth - 24 - cardSize) / VISIBLE)
-    : STEP_X;
-  // Keep the diagonal's slope: y follows x by the same ratio the design uses.
-  const stepY = stepX * (STEP_Y / STEP_X);
-
-  // How much of a background card's top edge stays uncovered. The card in front
-  // is up by |stepY| as well as right by stepX, so the label band clears it
-  // entirely whenever that vertical offset exceeds the band's own height.
-  const LABEL_BAND = 44;
-  const exposedWidth =
-    Math.abs(stepY) >= LABEL_BAND ? cardSize : Math.max(stepX, 56);
+  // The card in front sits one step up and one step right, so a background card
+  // shows an L of that width. The label lives in the top-right of it.
+  const exposedWidth = cardSize - stepX;
 
   // Wheel and touch drive the deck directly. A real scrollbar would need a tall
   // spacer to scroll against, and it could still hit its end -- this cannot.
@@ -176,14 +203,20 @@ export function Deck({ items }: { items: ShowcaseItem[] }) {
           const isLifted = lifted === item.id;
           const dimmed = lifted !== null && !isLifted;
 
-          // The run only goes one way, so its middle -- not its first card --
-          // is what belongs at the centre of the stage.
-          const centred = depth - VISIBLE / 2;
+          // The design anchors the front card near the left edge and steps up and
+          // right from there, letting the far cards run off-screen. Biasing the
+          // run this way keeps the front card whole -- centring on the full span
+          // pushed it off the left edge, since the far end is what overflows.
+          const centred = depth - FRONT_INSET;
           // A lifted card goes to the middle of the stage rather than a fixed
           // nudge from wherever it sat: on a phone that nudge left it off-screen.
           const x = isLifted ? 0 : centred * stepX;
-          const y = isLifted ? 0 : centred * stepY;
-          const z = -depth * 60 * scale + (isLifted ? 160 : 0);
+          // y is centred on the run's own middle, not on FRONT_INSET: that bias
+          // exists to keep the front card clear of the left edge, and reusing it
+          // here dragged the whole block above centre.
+          const yStep = depth - VISIBLE / 2;
+          const y = isLifted ? 0 : yStep * stepY - CHROME_OFFSET;
+          const z = -depth * 34 * scale + (isLifted ? 160 : 0);
 
           return (
             <div
@@ -216,8 +249,8 @@ export function Deck({ items }: { items: ShowcaseItem[] }) {
               <Card
                 item={item}
                 lifted={isLifted}
-                front={Math.abs(depth) < 0.5}
                 exposed={exposedWidth}
+                labelScale={scale}
               />
             </div>
           );
@@ -226,7 +259,7 @@ export function Deck({ items }: { items: ShowcaseItem[] }) {
 
       <PlayerOverlay
         item={playing}
-        gradient={playing ? coverGradient(playing.title) : ""}
+        gradient={playing ? coverGradient(playing.id) : ""}
         dotColor={playing ? PROVIDER_DOT[playing.provider] : "#fff"}
         onClose={() => setPlaying(null)}
       />
@@ -237,20 +270,21 @@ export function Deck({ items }: { items: ShowcaseItem[] }) {
 function Card({
   item,
   lifted,
-  front,
   exposed,
+  labelScale,
 }: {
   item: ShowcaseItem;
   lifted: boolean;
-  front: boolean;
   /** Width of the strip this card still shows past the one in front of it. */
   exposed: number;
+  /** Card size relative to the design's 184px, so the label scales with it. */
+  labelScale: number;
 }) {
   return (
     <div
       className="relative size-full overflow-hidden rounded-[10px] transition-shadow duration-500"
       style={{
-        background: item.coverImageUrl ? "#0a0806" : coverGradient(item.title),
+        background: item.coverImageUrl ? "#0a0806" : coverGradient(item.id),
         boxShadow: lifted
           ? "0 40px 90px rgba(0,0,0,0.7)"
           : "0 18px 44px rgba(0,0,0,0.5)",
@@ -301,13 +335,16 @@ function Card({
           anchoring right means the text does not shift as a card advances. */}
       {!lifted && (
         <p
-          className="absolute top-0 right-0 truncate bg-gradient-to-b from-black/85 to-transparent p-4 text-right font-medium text-white transition-all duration-300"
+          className="absolute top-0 right-0 truncate px-3 py-2.5 text-right font-extrabold text-white uppercase"
           style={{
             // A width cap, not a position: the label grows leftward from the
             // fixed right edge and truncates if the strip is too narrow.
             maxWidth: Math.round(exposed),
-            fontSize: front ? 14 : 12,
-            opacity: front ? 1 : 0.75,
+            // Scales with the card so it holds its proportion on a phone.
+            fontSize: Math.max(10, Math.round(14 * labelScale)),
+            // A cover can be light; the shadow keeps white legible without the
+            // scrim the design does without.
+            textShadow: "0 1px 3px rgba(0,0,0,0.55)",
           }}
         >
           {item.title}

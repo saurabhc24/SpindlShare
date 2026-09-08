@@ -261,11 +261,23 @@ deck's position wraps modulo the playlist count, so it is endless in both
 directions without the list ever being duplicated. Both ends of the visible run
 fade, so cards dissolve in and out instead of popping at the window edge.
 
-Card size and step are derived from the measured stage width rather than tuned
-per breakpoint -- the run is `cardSize + VISIBLE` steps wide, so solving for the
-step is what makes it fit at any width without a new constant for each new phone.
-A lifted card translates to the stage centre rather than a fixed offset from
-wherever it sat, which is what keeps it centred on a narrow screen.
+Geometry comes from the design as ratios, not pixels: a 184px card stepping 40px
+on both axes in a 393px frame. The card is sized as that fraction of the measured
+stage and every offset follows from it, so the deck holds its proportions on any
+screen instead of needing a constant per breakpoint. It is capped by height too,
+since the run is as tall as it is wide and a short window would otherwise push it
+off the bottom.
+
+The run is biased left rather than centred on its full span. The far cards are
+meant to bleed off the right edge, as they do in the design; centring the whole
+span instead pushed the front card off the *left* edge, where it was clipped. A
+lifted card translates to the stage centre, which is what keeps it centred on a
+narrow screen.
+
+Covers with no artwork take a colour hashed from the playlist's id with FNV-1a.
+Not the title -- two playlists called "Liked Songs" would come out identical --
+and not a simple `hash * 31 % 360`, which barely moved between neighbouring cuids
+and gave playlists created seconds apart the same colour.
 
 Labels are pinned to each card's top-right corner: that corner is the strip a
 card still shows past the one in front of it, and anchoring right means the title
