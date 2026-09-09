@@ -36,6 +36,39 @@ const VISIBLE = 8;
 const CHROME_OFFSET = 26;
 /** Pixels of scroll that advance the deck by one card. */
 const SCROLL_PER_CARD = 200;
+
+/** Depth range an orbiting card travels through, in cards. */
+const ORBIT_SPAN = 1;
+
+/**
+ * Where a recycling card sits, as an offset from its straight-line position.
+ *
+ * `t` runs 0 (still at the front) to 1 (arrived at the back). The card swings
+ * out to the left, arcs around the outside of the stack and rejoins at the far
+ * end, so the eye can follow one card all the way round.
+ */
+function orbitAt(
+  t: number,
+  cardSize: number,
+  runLength: number,
+  stepX: number,
+  stepY: number
+): { dx: number; dy: number; scale: number } {
+  // The straight line already carries it one step; the arc has to undo that and
+  // deliver it the whole length of the run instead.
+  const spanX = runLength * stepX + stepX;
+  const spanY = runLength * stepY + stepY;
+  // Half a turn: sin peaks at the midpoint, so the card bulges left of the deck
+  // rather than cutting through it.
+  const swing = Math.sin(t * Math.PI);
+  const reach = cardSize * 0.95;
+  return {
+    dx: spanX * t - swing * reach,
+    dy: spanY * t - swing * reach * 0.28,
+    // Smallest at the midpoint, back to full size as it lands.
+    scale: 1 - swing * 0.42,
+  };
+}
 /**
  * How far into the run the stage's centre falls. Below VISIBLE/2, so the front
  * card sits left of centre with room to spare and the far cards -- the ones the
@@ -48,13 +81,14 @@ const FRONT_INSET = 2.2;
  * LAST_DEPTH is the deepest card drawn, so the ramp is spent on cards that are
  * still on screen rather than reaching zero exactly where one sits.
  */
-const LAST_DEPTH = VISIBLE - 1;
+const LAST_DEPTH = VISIBLE + 1;
 
-function edgeFade(depth: number): number {
+function edgeFade(depth: number, deepestDrawn: number): number {
   if (depth < 0) return Math.max(0, 1 + depth);
-  // Starts one card before the end and reaches ~0.3 at the last drawn card, so
-  // the far edge sits mid-ramp at rest and dissolves rather than snapping off.
-  const fromFar = LAST_DEPTH + 0.4 - depth;
+  // Half-faded at the deepest card drawn: solid enough to read, clearly on its
+  // way out. Anchoring to that card rather than the window's edge is what stops
+  // the last slot rendering at zero.
+  const fromFar = deepestDrawn + 0.5 - depth;
   if (fromFar < 1) return Math.max(0, Math.min(1, fromFar));
   return 1;
 }
@@ -130,6 +164,9 @@ export function Deck({ items }: { items: ShowcaseItem[] }) {
   // Three playlists make a run three long, not eight. Centring on VISIBLE
   // regardless left a short deck low and to the right of the stage.
   const runLength = Math.min(VISIBLE, count);
+  // On a deck short enough to wrap, the orbit delivers cards to the back in
+  // full view, so nothing needs to fade in there. On a longer one it does.
+  const deepestDrawn = count <= LAST_DEPTH ? Infinity : LAST_DEPTH - 1;
   // Scaled with the run so a short deck is not pushed off to one side by a bias
   // meant for a full one.
   const frontInset = (FRONT_INSET / VISIBLE) * runLength;
@@ -204,10 +241,11 @@ export function Deck({ items }: { items: ShowcaseItem[] }) {
           let depth = index - offset;
           depth = ((depth % count) + count) % count;
 
-          // The card leaving the front travels a little past it before being
-          // recycled to the back, so it slides out instead of vanishing.
-          if (depth > count - 1) depth -= count;
-          if (depth < -1 || depth > LAST_DEPTH) return null;
+          // A card leaving the front is pulled below zero so it can orbit round
+          // to the back. It has to start that journey while it is still the
+          // deepest card, or there would be no room to travel.
+          if (depth > count - ORBIT_SPAN) depth -= count;
+          if (depth < -ORBIT_SPAN || depth >= LAST_DEPTH) return null;
 
           const isLifted = lifted === item.id;
           const dimmed = lifted !== null && !isLifted;
@@ -219,12 +257,22 @@ export function Deck({ items }: { items: ShowcaseItem[] }) {
           const centred = depth - frontInset;
           // A lifted card goes to the middle of the stage rather than a fixed
           // nudge from wherever it sat: on a phone that nudge left it off-screen.
-          const x = isLifted ? 0 : centred * stepX;
+          const restX = centred * stepX;
           // y is centred on the run's own middle, not on frontInset: that bias
           // exists to keep the front card clear of the left edge, and reusing it
           // here dragged the whole block above centre.
           const yStep = depth - runLength / 2;
-          const y = isLifted ? 0 : yStep * stepY - CHROME_OFFSET;
+          const restY = yStep * stepY - CHROME_OFFSET;
+
+          // Between depth -1 and 0 a card is recycling: it leaves the front and
+          // rejoins at the back. `orbit` carries it round the left side instead
+          // of letting it fade out and reappear.
+          const orbit =
+            depth < 0
+              ? orbitAt(-depth / ORBIT_SPAN, cardSize, runLength, stepX, stepY)
+              : null;
+          const x = isLifted ? 0 : restX + (orbit?.dx ?? 0);
+          const y = isLifted ? 0 : restY + (orbit?.dy ?? 0);
           const z = -depth * 34 * scale + (isLifted ? 160 : 0);
 
           return (
@@ -245,11 +293,23 @@ export function Deck({ items }: { items: ShowcaseItem[] }) {
                 height: cardSize,
                 marginLeft: -cardSize / 2,
                 marginTop: -cardSize / 2,
-                transform: `translate3d(${x}px, ${y}px, ${z}px)`,
+                transform: `translate3d(${x}px, ${y}px, ${z}px)${
+                  orbit ? ` scale(${orbit.scale.toFixed(3)})` : ""
+                }`,
                 // Nearest card highest. |depth| so the one card on its way out
                 // (depth just below 0) drops behind rather than above the front.
-                zIndex: Math.round(1000 - Math.abs(depth) * 10) + (isLifted ? 500 : 0),
-                opacity: dimmed ? 0.45 : edgeFade(depth),
+                // An orbiting card rides above everything: it travels outside
+                // the stack, so passing under it would read as clipping.
+                zIndex: orbit
+                  ? 1600
+                  : Math.round(1000 - Math.abs(depth) * 10) + (isLifted ? 500 : 0),
+                // An orbiting card stays solid -- the old exit fade was there to
+                // hide a teleport, and the arc is the thing to watch now.
+                opacity: dimmed
+                  ? 0.45
+                  : orbit
+                    ? 1
+                    : edgeFade(depth, deepestDrawn),
                 transitionProperty: "transform, opacity",
               }}
             >

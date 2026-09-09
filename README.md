@@ -271,6 +271,16 @@ off the bottom.
 One card advances per 200px of scroll (`SCROLL_PER_CARD`), so a normal flick
 crosses several rather than easing through one.
 
+A card leaving the front does not fade out and reappear at the back: it shrinks,
+swings out past the deck's left edge, arcs around the outside and lands at the
+far end, riding above the stack the whole way so the eye can follow one card
+round. Its position is a function of depth like every other card's -- between
+depth -1 and 0 that function is an arc rather than a straight line.
+
+The far end still fades, but only on a deck longer than the window. A deck short
+enough to wrap has every card delivered to the back by the orbit, in full view,
+so fading there would dim a card that is plainly arriving.
+
 Both anchors are measured against the run that actually renders, not the eight
 cards a full deck would hold -- three playlists make a run three long, and
 centring on the constant left a short deck low and to the right.
