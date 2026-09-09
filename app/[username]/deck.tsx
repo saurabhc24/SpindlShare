@@ -34,6 +34,8 @@ const STEP_RATIO = 40 / 184;
 const VISIBLE = 8;
 /** Header is taller than the footer, so the free space is not the viewport's middle. */
 const CHROME_OFFSET = 26;
+/** Pixels of scroll that advance the deck by one card. */
+const SCROLL_PER_CARD = 200;
 /**
  * How far into the run the stage's centre falls. Below VISIBLE/2, so the front
  * card sits left of centre with room to spare and the far cards -- the ones the
@@ -142,7 +144,7 @@ export function Deck({ items }: { items: ShowcaseItem[] }) {
     const stage = stageRef.current;
     if (!stage || count === 0) return;
 
-    const step = (delta: number) => setOffset((o) => o + delta / 420);
+    const step = (delta: number) => setOffset((o) => o + delta / SCROLL_PER_CARD);
 
     const onWheel = (event: WheelEvent) => {
       event.preventDefault();

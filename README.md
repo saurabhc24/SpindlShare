@@ -268,6 +268,9 @@ screen instead of needing a constant per breakpoint. It is capped by height too,
 since the run is as tall as it is wide and a short window would otherwise push it
 off the bottom.
 
+One card advances per 200px of scroll (`SCROLL_PER_CARD`), so a normal flick
+crosses several rather than easing through one.
+
 Both anchors are measured against the run that actually renders, not the eight
 cards a full deck would hold -- three playlists make a run three long, and
 centring on the constant left a short deck low and to the right.
