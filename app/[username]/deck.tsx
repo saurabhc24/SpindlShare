@@ -39,6 +39,8 @@ const SCROLL_PER_CARD = 200;
 
 /** Depth range an orbiting card travels through, in cards. */
 const ORBIT_SPAN = 1;
+/** Below every stacked card: the deepest sits at 1000 - LAST_DEPTH * 10. */
+const ORBIT_Z = 1000 - (VISIBLE + 2) * 10;
 
 /**
  * Where a recycling card sits, as an offset from its straight-line position.
@@ -296,12 +298,11 @@ export function Deck({ items }: { items: ShowcaseItem[] }) {
                 transform: `translate3d(${x}px, ${y}px, ${z}px)${
                   orbit ? ` scale(${orbit.scale.toFixed(3)})` : ""
                 }`,
-                // Nearest card highest. |depth| so the one card on its way out
-                // (depth just below 0) drops behind rather than above the front.
-                // An orbiting card rides above everything: it travels outside
-                // the stack, so passing under it would read as clipping.
+                // Nearest card highest. An orbiting card goes below the whole
+                // stack: it is travelling round the back to rejoin there, so
+                // passing over the deck would read as going the wrong way.
                 zIndex: orbit
-                  ? 1600
+                  ? ORBIT_Z
                   : Math.round(1000 - Math.abs(depth) * 10) + (isLifted ? 500 : 0),
                 // An orbiting card stays solid -- the old exit fade was there to
                 // hide a teleport, and the arc is the thing to watch now.

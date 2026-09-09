@@ -273,8 +273,8 @@ crosses several rather than easing through one.
 
 A card leaving the front does not fade out and reappear at the back: it shrinks,
 swings out past the deck's left edge, arcs around the outside and lands at the
-far end, riding above the stack the whole way so the eye can follow one card
-round. Its position is a function of depth like every other card's -- between
+far end. It passes *behind* every stacked card on the way: it is travelling round
+the back to rejoin there, so riding over the top read as going the wrong way. Its position is a function of depth like every other card's -- between
 depth -1 and 0 that function is an arc rather than a straight line.
 
 The far end still fades, but only on a deck longer than the window. A deck short
