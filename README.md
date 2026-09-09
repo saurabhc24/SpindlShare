@@ -278,6 +278,12 @@ span instead pushed the front card off the *left* edge, where it was clipped. A
 lifted card translates to the stage centre, which is what keeps it centred on a
 narrow screen.
 
+Each label sits over two scrims: a band that holds its own row dark, and a corner
+wash that fades that band into the cover rather than leaving a hard edge. A text
+shadow alone was not enough -- on a white cover the title measured 1.6:1 against
+its ground, which is illegible. It now clears 5.5:1 on pure white and 12:1 on a
+generated cover.
+
 Covers with no artwork take a colour hashed from the playlist's id with FNV-1a.
 Not the title -- two playlists called "Liked Songs" would come out identical --
 and not a simple `hash * 31 % 360`, which barely moved between neighbouring cuids
