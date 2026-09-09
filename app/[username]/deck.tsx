@@ -125,6 +125,13 @@ export function Deck({ items }: { items: ShowcaseItem[] }) {
   const stepX = cardSize * STEP_RATIO;
   const stepY = -stepX;
 
+  // Three playlists make a run three long, not eight. Centring on VISIBLE
+  // regardless left a short deck low and to the right of the stage.
+  const runLength = Math.min(VISIBLE, count);
+  // Scaled with the run so a short deck is not pushed off to one side by a bias
+  // meant for a full one.
+  const frontInset = (FRONT_INSET / VISIBLE) * runLength;
+
   // The card in front sits one step up and one step right, so a background card
   // shows an L of that width. The label lives in the top-right of it.
   const exposedWidth = cardSize - stepX;
@@ -207,14 +214,14 @@ export function Deck({ items }: { items: ShowcaseItem[] }) {
           // right from there, letting the far cards run off-screen. Biasing the
           // run this way keeps the front card whole -- centring on the full span
           // pushed it off the left edge, since the far end is what overflows.
-          const centred = depth - FRONT_INSET;
+          const centred = depth - frontInset;
           // A lifted card goes to the middle of the stage rather than a fixed
           // nudge from wherever it sat: on a phone that nudge left it off-screen.
           const x = isLifted ? 0 : centred * stepX;
-          // y is centred on the run's own middle, not on FRONT_INSET: that bias
+          // y is centred on the run's own middle, not on frontInset: that bias
           // exists to keep the front card clear of the left edge, and reusing it
           // here dragged the whole block above centre.
-          const yStep = depth - VISIBLE / 2;
+          const yStep = depth - runLength / 2;
           const y = isLifted ? 0 : yStep * stepY - CHROME_OFFSET;
           const z = -depth * 34 * scale + (isLifted ? 160 : 0);
 

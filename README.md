@@ -268,6 +268,10 @@ screen instead of needing a constant per breakpoint. It is capped by height too,
 since the run is as tall as it is wide and a short window would otherwise push it
 off the bottom.
 
+Both anchors are measured against the run that actually renders, not the eight
+cards a full deck would hold -- three playlists make a run three long, and
+centring on the constant left a short deck low and to the right.
+
 The run is biased left rather than centred on its full span. The far cards are
 meant to bleed off the right edge, as they do in the design; centring the whole
 span instead pushed the front card off the *left* edge, where it was clipped. A
