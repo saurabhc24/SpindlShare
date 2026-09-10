@@ -60,7 +60,13 @@ function orbitAt(
   runLength: number,
   stepX: number,
   stepY: number
-): { dx: number; dy: number; scale: number; behind: number } {
+): {
+  dx: number;
+  dy: number;
+  scale: number;
+  behind: number;
+  inFront: boolean;
+} {
   // The straight line already carries it one step; the arc has to undo that and
   // deliver it the whole length of the run instead.
   const spanX = runLength * stepX + stepX;
@@ -94,6 +100,9 @@ function orbitAt(
     // Behind from the first frame: the card is dropping below the deck, so it
     // must never be painted over the stack, not even for the slide.
     behind: Math.max(drop, swing),
+    // The front card starts in front and has to stay there while it slides
+    // clear. Only once the slide is done does it belong behind the stack.
+    inFront: slide < 1,
   };
 }
 /**
@@ -372,11 +381,13 @@ export function Deck({ items }: { items: ShowcaseItem[] }) {
                 // Stays in front until it has pulled clear of the deck, then
                 // drops behind. Dropping at once made it clip through the card
                 // it was still overlapping.
-                // Behind the stack for the whole journey. It used to pop to
-                // 1010 -- above every card -- at the start and end, which read
-                // as the card flashing in front before it went round.
+                // In front while it slides clear -- it was the front card, so
+                // ducking behind immediately read as a jump -- then behind for
+                // the arc, which is the half that travels round the back.
                 zIndex: orbit
-                  ? ORBIT_Z
+                  ? orbit.inFront
+                    ? 1010
+                    : ORBIT_Z
                   : Math.round(1000 - Math.abs(depth) * 10) + (isLifted ? 500 : 0),
                 // An orbiting card stays solid -- the old exit fade was there to
                 // hide a teleport, and the arc is the thing to watch now.

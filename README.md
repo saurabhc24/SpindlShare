@@ -280,10 +280,11 @@ bows out to the right of the run and lands at the far end. Starting the arc
 immediately cut the card across its neighbour; the slide is what makes the exit
 read as leaving the stack rather than passing through it.
 
-It is painted behind the stack from the very first frame. An earlier version
-lifted it above every card at the start and end of the journey, to dodge a
-clipping problem, which showed as the card flashing in front before it went
-round. Right because that is
+Paint order follows the same two phases. The card was the front card, so it
+keeps front rank while it slides clear -- ducking behind immediately read as a
+jump -- and drops behind the stack for the arc, which is the half that travels
+round the back. Scrolled the other way the journey runs in reverse: the card
+starts behind and comes forward to land as the new front card. Right because that is
 the open half of the stage: the front card sits near the left edge, so a leftward
 arc big enough to clear the stack ran off screen entirely. The bow's sign is
 fixed, so the path looks the same whichever way the deck is scrolled. It passes *behind* every stacked card on the way: it is travelling round
