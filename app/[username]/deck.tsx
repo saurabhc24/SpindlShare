@@ -45,9 +45,9 @@ const ORBIT_Z = 1000 - (VISIBLE + 2) * 10;
 /**
  * Where a recycling card sits, as an offset from its straight-line position.
  *
- * `t` runs 0 (still at the front) to 1 (arrived at the back). The card swings
- * out to the left, arcs around the outside of the stack and rejoins at the far
- * end, so the eye can follow one card all the way round.
+ * `t` runs 0 (still at the front) to 1 (arrived at the back). The card bulges
+ * out to the right of the run, which is the open half of the stage -- the front
+ * card sits near the left edge, so a leftward arc runs off screen.
  */
 function orbitAt(
   t: number,
@@ -69,9 +69,12 @@ function orbitAt(
   // Without this it starts sliding toward the next card while still overlapping
   // it, which reads as passing through rather than around.
   const along = t * t * (3 - 2 * t);
+  // Right and slightly down: perpendicular to a run that recedes up-and-right,
+  // so the bulge is into empty space rather than across the deck. The sign is
+  // fixed, so the arc bows the same way whichever way the deck is scrolled.
   return {
-    dx: spanX * along - swing * reach,
-    dy: spanY * along - swing * reach * 0.28,
+    dx: spanX * along + swing * reach,
+    dy: spanY * along + swing * reach * 0.55,
     // Smallest at the midpoint, back to full size as it lands.
     scale: 1 - swing * 0.42,
     // How far back it has pulled. Overlapping the stack is fine once it is

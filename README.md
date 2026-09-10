@@ -272,8 +272,10 @@ One card advances per 200px of scroll (`SCROLL_PER_CARD`), so a normal flick
 crosses several rather than easing through one.
 
 A card leaving the front does not fade out and reappear at the back: it shrinks,
-swings out past the deck's left edge, arcs around the outside and lands at the
-far end. It passes *behind* every stacked card on the way: it is travelling round
+bows out to the right of the run and lands at the far end. Right because that is
+the open half of the stage: the front card sits near the left edge, so a leftward
+arc big enough to clear the stack ran off screen entirely. The bow's sign is
+fixed, so the path looks the same whichever way the deck is scrolled. It passes *behind* every stacked card on the way: it is travelling round
 the back to rejoin there, so riding over the top read as going the wrong way.
 
 Behind means depth, not just paint order. The card is pushed back in Z as it
