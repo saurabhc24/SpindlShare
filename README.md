@@ -274,7 +274,14 @@ crosses several rather than easing through one.
 A card leaving the front does not fade out and reappear at the back: it shrinks,
 swings out past the deck's left edge, arcs around the outside and lands at the
 far end. It passes *behind* every stacked card on the way: it is travelling round
-the back to rejoin there, so riding over the top read as going the wrong way. Its position is a function of depth like every other card's -- between
+the back to rejoin there, so riding over the top read as going the wrong way.
+
+Behind means depth, not just paint order. The card is pushed back in Z as it
+leaves, and its swing rises off zero quickly (`sin^0.55`) so it pulls away before
+it advances along the deck. Dropping it behind while still level with the stack
+was what made it look like it was passing through the next card rather than
+around it -- a card 184px wide stepping 40px cannot avoid overlapping in the
+plane, so the depth is what has to carry the illusion. Its position is a function of depth like every other card's -- between
 depth -1 and 0 that function is an arc rather than a straight line.
 
 The far end still fades, but only on a deck longer than the window. A deck short

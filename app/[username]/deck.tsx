@@ -55,20 +55,29 @@ function orbitAt(
   runLength: number,
   stepX: number,
   stepY: number
-): { dx: number; dy: number; scale: number } {
+): { dx: number; dy: number; scale: number; behind: number } {
   // The straight line already carries it one step; the arc has to undo that and
   // deliver it the whole length of the run instead.
   const spanX = runLength * stepX + stepX;
   const spanY = runLength * stepY + stepY;
-  // Half a turn: sin peaks at the midpoint, so the card bulges left of the deck
-  // rather than cutting through it.
-  const swing = Math.sin(t * Math.PI);
-  const reach = cardSize * 0.95;
+  // Half a turn, raised to a power below 1 so it leaves the deck quickly rather
+  // than easing away: a plain sine barely moves at first, and the card spent the
+  // start of its journey overlapping the one it was passing.
+  const swing = Math.pow(Math.sin(t * Math.PI), 0.55);
+  const reach = cardSize * 0.75;
+  // Travel along the deck is held back until the card has pulled clear of it.
+  // Without this it starts sliding toward the next card while still overlapping
+  // it, which reads as passing through rather than around.
+  const along = t * t * (3 - 2 * t);
   return {
-    dx: spanX * t - swing * reach,
-    dy: spanY * t - swing * reach * 0.28,
+    dx: spanX * along - swing * reach,
+    dy: spanY * along - swing * reach * 0.28,
     // Smallest at the midpoint, back to full size as it lands.
     scale: 1 - swing * 0.42,
+    // How far back it has pulled. Overlapping the stack is fine once it is
+    // genuinely behind -- what read as passing through was dropping behind
+    // while still level with the deck.
+    behind: swing,
   };
 }
 /**
@@ -275,7 +284,12 @@ export function Deck({ items }: { items: ShowcaseItem[] }) {
               : null;
           const x = isLifted ? 0 : restX + (orbit?.dx ?? 0);
           const y = isLifted ? 0 : restY + (orbit?.dy ?? 0);
-          const z = -depth * 34 * scale + (isLifted ? 160 : 0);
+          // An orbiting card travels well behind the deepest card, so it reads
+          // as going around the back rather than sliding across the front.
+          const z =
+            -depth * 34 * scale +
+            (isLifted ? 160 : 0) -
+            (orbit ? orbit.behind * cardSize * 1.6 : 0);
 
           return (
             <div
@@ -301,8 +315,13 @@ export function Deck({ items }: { items: ShowcaseItem[] }) {
                 // Nearest card highest. An orbiting card goes below the whole
                 // stack: it is travelling round the back to rejoin there, so
                 // passing over the deck would read as going the wrong way.
+                // Stays in front until it has pulled clear of the deck, then
+                // drops behind. Dropping at once made it clip through the card
+                // it was still overlapping.
                 zIndex: orbit
-                  ? ORBIT_Z
+                  ? orbit.behind > 0.25
+                    ? ORBIT_Z
+                    : 1010
                   : Math.round(1000 - Math.abs(depth) * 10) + (isLifted ? 500 : 0),
                 // An orbiting card stays solid -- the old exit fade was there to
                 // hide a teleport, and the arc is the thing to watch now.
