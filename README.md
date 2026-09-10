@@ -275,7 +275,15 @@ round whenever a scroll stopped short. A touch commits on release, from the
 distance travelled, so a drag is one gesture however many move events it fires.
 
 A card leaving the front does not fade out and reappear at the back: it shrinks,
-bows out to the right of the run and lands at the far end. Right because that is
+slides straight down its own height first -- clearing the card behind it -- then
+bows out to the right of the run and lands at the far end. Starting the arc
+immediately cut the card across its neighbour; the slide is what makes the exit
+read as leaving the stack rather than passing through it.
+
+It is painted behind the stack from the very first frame. An earlier version
+lifted it above every card at the start and end of the journey, to dodge a
+clipping problem, which showed as the card flashing in front before it went
+round. Right because that is
 the open half of the stage: the front card sits near the left edge, so a leftward
 arc big enough to clear the stack ran off screen entirely. The bow's sign is
 fixed, so the path looks the same whichever way the deck is scrolled. It passes *behind* every stacked card on the way: it is travelling round

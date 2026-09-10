@@ -39,6 +39,9 @@ const ADVANCE_MS = 620;
 /** Pixels a touch must travel before it counts as a swipe. */
 const TOUCH_THRESHOLD = 24;
 
+/** Fraction of the journey spent sliding clear before the arc begins. */
+const SLIDE_PHASE = 0.5;
+
 /** Depth range an orbiting card travels through, in cards. */
 const ORBIT_SPAN = 1;
 /** Below every stacked card: the deepest sits at 1000 - LAST_DEPTH * 10. */
@@ -62,27 +65,35 @@ function orbitAt(
   // deliver it the whole length of the run instead.
   const spanX = runLength * stepX + stepX;
   const spanY = runLength * stepY + stepY;
+  // The journey has two parts. First the card slides straight down its own
+  // height, clearing the card behind it; only then does it arc away. Starting
+  // the arc immediately made it cut across its neighbour.
+  const slide = Math.min(1, t / SLIDE_PHASE);
+  const arcT = Math.max(0, (t - SLIDE_PHASE) / (1 - SLIDE_PHASE));
+
   // Half a turn, raised to a power below 1 so it leaves the deck quickly rather
-  // than easing away: a plain sine barely moves at first, and the card spent the
-  // start of its journey overlapping the one it was passing.
-  const swing = Math.pow(Math.sin(t * Math.PI), 0.55);
+  // than easing away: a plain sine barely moves at first.
+  const swing = Math.pow(Math.sin(arcT * Math.PI), 0.55);
   const reach = cardSize * 0.75;
   // Travel along the deck is held back until the card has pulled clear of it.
-  // Without this it starts sliding toward the next card while still overlapping
-  // it, which reads as passing through rather than around.
-  const along = t * t * (3 - 2 * t);
+  const along = arcT * arcT * (3 - 2 * arcT);
+  // Linear: the advance's own ease already shapes the timing, and easing twice
+  // left the card sitting still for the first hundred milliseconds.
+  const drop = slide;
+
   // Right and slightly down: perpendicular to a run that recedes up-and-right,
   // so the bulge is into empty space rather than across the deck. The sign is
   // fixed, so the arc bows the same way whichever way the deck is scrolled.
   return {
     dx: spanX * along + swing * reach,
-    dy: spanY * along + swing * reach * 0.55,
+    // The slide's own drop is undone as the arc takes over, so the card does
+    // not carry a permanent offset into its landing slot.
+    dy: spanY * along + swing * reach * 0.55 + drop * (1 - along) * cardSize,
     // Smallest at the midpoint, back to full size as it lands.
     scale: 1 - swing * 0.42,
-    // How far back it has pulled. Overlapping the stack is fine once it is
-    // genuinely behind -- what read as passing through was dropping behind
-    // while still level with the deck.
-    behind: swing,
+    // Behind from the first frame: the card is dropping below the deck, so it
+    // must never be painted over the stack, not even for the slide.
+    behind: Math.max(drop, swing),
   };
 }
 /**
@@ -215,8 +226,9 @@ export function Deck({ items }: { items: ShowcaseItem[] }) {
 
       const tick = (now: number) => {
         const t = Math.min(1, (now - started) / ADVANCE_MS);
-        // Ease in and out, so the card leaves and lands gently.
-        const eased = t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+        // Mostly ease-out: the card should answer the gesture at once and settle
+        // gently. A symmetric cubic left it near-motionless for the first 100ms.
+        const eased = 1 - Math.pow(1 - t, 2.4);
         const next = from + (to - from) * eased;
         offsetRef.current = next;
         setOffset(next);
@@ -360,10 +372,11 @@ export function Deck({ items }: { items: ShowcaseItem[] }) {
                 // Stays in front until it has pulled clear of the deck, then
                 // drops behind. Dropping at once made it clip through the card
                 // it was still overlapping.
+                // Behind the stack for the whole journey. It used to pop to
+                // 1010 -- above every card -- at the start and end, which read
+                // as the card flashing in front before it went round.
                 zIndex: orbit
-                  ? orbit.behind > 0.25
-                    ? ORBIT_Z
-                    : 1010
+                  ? ORBIT_Z
                   : Math.round(1000 - Math.abs(depth) * 10) + (isLifted ? 500 : 0),
                 // An orbiting card stays solid -- the old exit fade was there to
                 // hide a teleport, and the arc is the thing to watch now.
