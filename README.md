@@ -268,8 +268,11 @@ screen instead of needing a constant per breakpoint. It is capped by height too,
 since the run is as tall as it is wide and a short window would otherwise push it
 off the bottom.
 
-One card advances per 200px of scroll (`SCROLL_PER_CARD`), so a normal flick
-crosses several rather than easing through one.
+One gesture advances exactly one card. Any scroll or swipe past a small
+threshold starts a fixed animation and further input is ignored until it lands,
+so the orbit always plays out -- tracking the finger left a card frozen part-way
+round whenever a scroll stopped short. A touch commits on release, from the
+distance travelled, so a drag is one gesture however many move events it fires.
 
 A card leaving the front does not fade out and reappear at the back: it shrinks,
 bows out to the right of the run and lands at the far end. Right because that is

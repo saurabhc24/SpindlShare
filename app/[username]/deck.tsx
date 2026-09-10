@@ -34,8 +34,10 @@ const STEP_RATIO = 40 / 184;
 const VISIBLE = 8;
 /** Header is taller than the footer, so the free space is not the viewport's middle. */
 const CHROME_OFFSET = 26;
-/** Pixels of scroll that advance the deck by one card. */
-const SCROLL_PER_CARD = 200;
+/** How long one card's advance takes, in ms. Long enough to read the orbit. */
+const ADVANCE_MS = 620;
+/** Pixels a touch must travel before it counts as a swipe. */
+const TOUCH_THRESHOLD = 24;
 
 /** Depth range an orbiting card travels through, in cards. */
 const ORBIT_SPAN = 1;
@@ -138,6 +140,10 @@ export function Deck({ items }: { items: ShowcaseItem[] }) {
   const [lifted, setLifted] = useState<string | null>(null);
   const [playing, setPlaying] = useState<ShowcaseItem | null>(null);
   const stageRef = useRef<HTMLDivElement | null>(null);
+  // The animation reads and writes offset outside React's render cycle, so it
+  // needs a ref: reading state inside the frame loop would see a stale value.
+  const offsetRef = useRef(0);
+  const animating = useRef(false);
   const [stageWidth, setStageWidth] = useState(0);
   const [stageHeight, setStageHeight] = useState(0);
 
@@ -189,40 +195,73 @@ export function Deck({ items }: { items: ShowcaseItem[] }) {
   // shows an L of that width. The label lives in the top-right of it.
   const exposedWidth = cardSize - stepX;
 
-  // Wheel and touch drive the deck directly. A real scrollbar would need a tall
-  // spacer to scroll against, and it could still hit its end -- this cannot.
+  // One gesture advances exactly one card, and the motion always plays out.
+  // Tracking the finger left a card frozen part-way round its orbit whenever a
+  // scroll stopped short.
   useEffect(() => {
     const stage = stageRef.current;
     if (!stage || count === 0) return;
 
-    const step = (delta: number) => setOffset((o) => o + delta / SCROLL_PER_CARD);
+    let frame = 0;
+    const advance = (direction: number) => {
+      // Ignored while one is running: a second card starting mid-flight is what
+      // "complete the motion" is meant to prevent.
+      if (animating.current) return;
+      animating.current = true;
+
+      const from = offsetRef.current;
+      const to = Math.round(from) + direction;
+      const started = performance.now();
+
+      const tick = (now: number) => {
+        const t = Math.min(1, (now - started) / ADVANCE_MS);
+        // Ease in and out, so the card leaves and lands gently.
+        const eased = t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+        const next = from + (to - from) * eased;
+        offsetRef.current = next;
+        setOffset(next);
+        if (t < 1) frame = requestAnimationFrame(tick);
+        else animating.current = false;
+      };
+      frame = requestAnimationFrame(tick);
+    };
 
     const onWheel = (event: WheelEvent) => {
       event.preventDefault();
-      step(event.deltaY);
+      if (Math.abs(event.deltaY) < 1) return;
+      advance(Math.sign(event.deltaY));
     };
 
-    let lastTouch: number | null = null;
+    // Touch commits on release, from the distance travelled: a drag is one
+    // gesture however many move events it fires.
+    let startY: number | null = null;
     const onTouchStart = (event: TouchEvent) => {
-      lastTouch = event.touches[0]?.clientY ?? null;
+      startY = event.touches[0]?.clientY ?? null;
     };
     const onTouchMove = (event: TouchEvent) => {
-      const y = event.touches[0]?.clientY;
-      if (y == null || lastTouch == null) return;
-      event.preventDefault();
-      step(lastTouch - y);
-      lastTouch = y;
+      if (startY != null) event.preventDefault();
+    };
+    const onTouchEnd = (event: TouchEvent) => {
+      const y = event.changedTouches[0]?.clientY;
+      if (y == null || startY == null) return;
+      const travelled = startY - y;
+      startY = null;
+      if (Math.abs(travelled) < TOUCH_THRESHOLD) return;
+      advance(Math.sign(travelled));
     };
 
-    // Not passive: both handlers call preventDefault, and Chrome ignores it
-    // (with a console warning) on a listener it was allowed to assume passive.
+    // Not passive: the handlers call preventDefault, and Chrome ignores it on a
+    // listener it was allowed to assume passive.
     stage.addEventListener("wheel", onWheel, { passive: false });
     stage.addEventListener("touchstart", onTouchStart, { passive: true });
     stage.addEventListener("touchmove", onTouchMove, { passive: false });
+    stage.addEventListener("touchend", onTouchEnd, { passive: true });
     return () => {
+      cancelAnimationFrame(frame);
       stage.removeEventListener("wheel", onWheel);
       stage.removeEventListener("touchstart", onTouchStart);
       stage.removeEventListener("touchmove", onTouchMove);
+      stage.removeEventListener("touchend", onTouchEnd);
     };
   }, [count]);
 
