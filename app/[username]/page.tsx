@@ -9,7 +9,7 @@ import { normalizeUsername } from "@/lib/username";
 import { providerLabel } from "@/components/provider-badge";
 
 import { DeckProfile } from "./deck-profile";
-import { type ShowcaseItem } from "./showcase";
+import { type ShowcaseItem } from "./playlist-item";
 
 // Short ISR window as a safety net; dashboard mutations call revalidatePath on
 // this route so edits show up immediately rather than waiting this out.

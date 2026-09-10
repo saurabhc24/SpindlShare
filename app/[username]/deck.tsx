@@ -5,7 +5,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { MusicProvider } from "@/app/generated/prisma/enums";
 
 import { PlayerOverlay } from "./player-overlay";
-import type { ShowcaseItem } from "./showcase";
+import type { ShowcaseItem } from "./playlist-item";
 
 /**
  * The playlist deck: covers stacked along a diagonal, scrolled through endlessly.

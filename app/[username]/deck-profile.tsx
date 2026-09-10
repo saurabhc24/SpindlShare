@@ -3,7 +3,7 @@
 import { useState } from "react";
 
 import { Deck } from "./deck";
-import type { ShowcaseItem } from "./showcase";
+import type { ShowcaseItem } from "./playlist-item";
 
 /**
  * The public profile: who this is, over a deck of their playlists.

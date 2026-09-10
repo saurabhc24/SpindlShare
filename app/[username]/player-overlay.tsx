@@ -6,7 +6,7 @@ import { playlistEmbed } from "@/lib/playlist-embed";
 import { isYouTubeMusic } from "@/lib/playlist-link";
 
 import { mountEmbedPlayer } from "./embed-player";
-import type { ShowcaseItem } from "./showcase";
+import type { ShowcaseItem } from "./playlist-item";
 
 /**
  * The slide-up detail view: a turntable, and the provider's own player beneath it.
