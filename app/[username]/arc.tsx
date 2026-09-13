@@ -25,13 +25,17 @@ const PROVIDER_DOT: Record<MusicProvider, string> = {
 /** Radius as a multiple of the stage height: bigger means a flatter curve. */
 const RADIUS_RATIO = 2.1;
 /** Cover edge as a fraction of stage height. */
-const COVER_RATIO = 0.115;
+const COVER_RATIO = 0.17;
 /** Gap between covers, as a fraction of a cover. The design leaves a hairline. */
 const GAP_RATIO = 0.1;
 /** How long one step takes. */
 const ADVANCE_MS = 520;
 /** A drag shorter than this is a tap, not a swipe. */
 const TOUCH_THRESHOLD = 24;
+/** Blur on the outermost cover, in px. */
+const MAX_END_BLUR = 6;
+/** Space between the selected cover and its details. */
+const DETAIL_GAP = 40;
 
 function hueFromKey(key: string): number {
   let hash = 0x811c9dc5;
@@ -40,6 +44,21 @@ function hueFromKey(key: string): number {
     hash = Math.imul(hash, 0x01000193) >>> 0;
   }
   return hash % 360;
+}
+
+/**
+ * Blur for a cover `away` steps from the selection. Nothing near the middle,
+ * rising toward the ends so the arc fades out instead of being cut off.
+ *
+ * `reach` is how far a card actually gets, not the drawing span: with fewer
+ * playlists than the span the wrap clamps it, and keying on span left the ramp
+ * barely started.
+ */
+function endBlur(away: number, reach: number): number {
+  if (reach <= 1) return 0;
+  const start = reach * 0.35;
+  if (away <= start) return 0;
+  return ((away - start) / (reach - start)) * MAX_END_BLUR;
 }
 
 function coverGradient(key: string): string {
@@ -139,19 +158,14 @@ export function Arc({ items }: { items: ShowcaseItem[] }) {
     ((coverSize * (1 + GAP_RATIO)) / radius) * (180 / Math.PI);
   // Enough to fill the visible half of the circle, however big the covers are.
   const span = Math.ceil(110 / stepDeg);
-  // A cover spanning stepDeg is narrower on its inner edge than its outer one,
-  // because the inner edge sits at a smaller radius. Tapering it into that
-  // trapezoid is what lets neighbours meet along parallel edges -- as plain
-  // squares their corners splayed and the ribbon's outer edge looked ragged.
-  const taperPct =
-    (((radius + coverSize / 2) - (radius - coverSize / 2)) /
-      2 /
-      (radius + coverSize / 2)) *
-    100;
-  // The inner (left) edge is the short one: the arc's centre is off to the left.
-  const coverClip = `polygon(${taperPct}% 0%, 100% 0%, 100% 100%, ${taperPct}% 100%)`;
+  // The wrap keeps a card within half the deck, so on a short deck that, not
+  // the span, is the furthest anything is ever drawn.
+  const blurReach = Math.min(span, count / 2);
+
   // The arc's rightmost point, where the selected cover lands.
   const centreX = -radius + coverSize * 0.9;
+  // The selected cover sits at angle 0, so its centre is centreX + radius.
+  const selectedRight = centreX + radius + coverSize / 2;
   const centreY = size.h / 2;
 
   const select = useCallback((delta: number) => {
@@ -207,9 +221,10 @@ export function Arc({ items }: { items: ShowcaseItem[] }) {
                 height: coverSize,
                 left: 0,
                 top: 0,
-                // Tapered toward the arc's centre, so stacked covers share an
-                // edge angle and the ribbon reads as one continuous band.
-                clipPath: coverClip,
+                // Matches the stacked deck's card, so the two layouts share a
+                // shape. It also rounds away the corner splay the taper used to
+                // correct, which is why that clip is gone.
+                borderRadius: 10,
                 // Rotated to sit square to the arc, the way a card on a wheel does.
                 transform: `translate3d(${x - coverSize / 2}px, ${y - coverSize / 2}px, 0) rotate(${step * stepDeg}deg)`,
                 background: item.coverImageUrl
@@ -221,9 +236,11 @@ export function Arc({ items }: { items: ShowcaseItem[] }) {
                 boxShadow: isSelected
                   ? "inset 0 0 0 3px rgba(255,255,255,0.95)"
                   : "inset 0 0 0 1px rgba(0,0,0,0.35)",
-                // The unselected covers dim instead, so the selection reads even
-                // where the inset ring meets a pale cover.
-                filter: isSelected ? "none" : "brightness(0.62)",
+                // Dimmed so the selection reads, and blurred further out so the
+                // ribbon dissolves at the ends of the arc rather than stopping.
+                filter: isSelected
+                  ? "none"
+                  : `brightness(0.62) blur(${endBlur(away, blurReach).toFixed(2)}px)`,
                 zIndex: Math.round(500 - away * 10),
               }}
             >
@@ -245,9 +262,11 @@ export function Arc({ items }: { items: ShowcaseItem[] }) {
         <div
           className="pointer-events-none absolute flex flex-col gap-1"
           style={{
-            left: coverSize * 2.05,
+            // Measured from where the selected cover actually sits -- it is
+            // centred on the arc, so its right edge is not at coverSize.
+            left: selectedRight + DETAIL_GAP,
             top: centreY - coverSize * 0.55,
-            maxWidth: `calc(100% - ${coverSize * 2.05 + 24}px)`,
+            maxWidth: `calc(100% - ${selectedRight + DETAIL_GAP + 16}px)`,
           }}
         >
           {/* The bar the design puts against the selected row's title. */}
