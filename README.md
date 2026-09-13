@@ -161,10 +161,11 @@ so a hand-edited or future value renders rather than breaks.
 Both layouts share the same profile chrome, so choosing one swaps the playlist
 component and nothing else.
 
-It sits below the username section and saves on its own button. That means its
-own form, since the username section already has one in between -- and that form
-carries the rest of the profile as hidden fields, because the action writes every
-field it receives and would otherwise blank a bio on a layout change.
+The control is drawn below the username section, but its value belongs to the
+profile form above -- one Save changes button owns the whole profile. A form
+cannot wrap another and the username form sits between them, so the hidden input
+stays in the profile form while the visible buttons render lower and drive the
+same state.
 
 Photo uploads go to Vercel Blob and need `BLOB_READ_WRITE_TOKEN`; without it the
 route answers 501 and says so rather than failing silently. The route checks type

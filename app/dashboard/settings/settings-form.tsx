@@ -90,6 +90,7 @@ export function SettingsForm({
     nameValue !== displayName ||
     bioValue !== bio ||
     isPublicValue !== isPublic ||
+    layoutValue !== playlistLayout ||
     (photo ?? "") !== (avatarUrl ?? "");
 
   // Case-sensitive: the action treats a casing-only edit as a real change, so
@@ -257,6 +258,11 @@ export function SettingsForm({
           </p>
         )}
 
+        {/* The layout's control is drawn below the username section, where the
+            design puts it, but its value belongs to this form -- a form cannot
+            wrap another, and the username form sits between the two. */}
+        <input type="hidden" name="playlistLayout" value={layoutValue} />
+
         <div className="flex w-full flex-col items-start">
           <button
             type="submit"
@@ -317,22 +323,13 @@ export function SettingsForm({
         </p>
       </form>
 
-      {/* Its own form, posting the same action: the design puts it below the
-          username section, which sits in a form of its own. */}
-      <form action={profileAction} className="flex w-full flex-col gap-3">
+      <div className="flex w-full flex-col gap-3">
         <span className="flex flex-col gap-1">
           <span className={LABEL}>Playlist Layout</span>
           <span className={NOTE}>
             Choose the way you&apos;d like your playlists shown on your page
           </span>
         </span>
-        {/* The values the profile action expects. Only the layout can change
-            here, so the rest are carried through unaltered. */}
-        <input type="hidden" name="playlistLayout" value={layoutValue} />
-        <input type="hidden" name="displayName" value={displayName} />
-        <input type="hidden" name="bio" value={bio} />
-        {isPublic && <input type="hidden" name="isPublic" value="on" />}
-        <input type="hidden" name="avatarUrl" value={avatarUrl ?? ""} />
         <span className="flex items-center gap-3">
           {PLAYLIST_LAYOUTS.map((option) => {
             const active = layoutValue === option;
@@ -354,17 +351,7 @@ export function SettingsForm({
             );
           })}
         </span>
-        <span className="flex w-full">
-          <button
-            type="submit"
-            disabled={layoutValue === playlistLayout || profilePending}
-            className="cursor-pointer rounded-lg px-6 py-3 text-sm font-bold text-[#313131] transition-transform hover:-translate-y-px disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:translate-y-0"
-            style={{ background: "var(--gold)" }}
-          >
-            {profilePending ? "Saving..." : "Save layout"}
-          </button>
-        </span>
-      </form>
+      </div>
 
       <div className="flex w-full flex-col items-center gap-4">
         <p className="w-full text-center text-sm text-white">
