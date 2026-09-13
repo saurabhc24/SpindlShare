@@ -9,6 +9,7 @@ import {
   type ActionState,
 } from "./actions";
 import { BIO_MAX } from "./limits";
+import { PLAYLIST_LAYOUTS, type PlaylistLayout } from "./layouts";
 import { resizeAvatar } from "./resize-image";
 
 const FIELD =
@@ -22,12 +23,14 @@ export function SettingsForm({
   isPublic,
   username,
   avatarUrl,
+  playlistLayout,
 }: {
   displayName: string;
   bio: string;
   isPublic: boolean;
   username: string;
   avatarUrl: string | null;
+  playlistLayout: PlaylistLayout;
 }) {
   const [profileState, profileAction, profilePending] = useActionState<
     ActionState,
@@ -46,6 +49,7 @@ export function SettingsForm({
   const [bioValue, setBioValue] = useState(bio);
   const [isPublicValue, setIsPublicValue] = useState(isPublic);
   const [photo, setPhoto] = useState(avatarUrl);
+  const [layoutValue, setLayoutValue] = useState<PlaylistLayout>(playlistLayout);
   // Empty by design: the current handle is the placeholder, so the field reads
   // as "type a new one" rather than as text to clear first.
   const [usernameValue, setUsernameValue] = useState("");
@@ -57,19 +61,28 @@ export function SettingsForm({
 
   // A save revalidates, so the saved values come back as new props. Re-syncing
   // here is what returns both buttons to disabled once a change has landed.
-  const [saved, setSaved] = useState({ displayName, bio, isPublic, avatarUrl, username });
+  const [saved, setSaved] = useState({
+    displayName,
+    bio,
+    isPublic,
+    avatarUrl,
+    username,
+    playlistLayout,
+  });
   if (
     saved.displayName !== displayName ||
     saved.bio !== bio ||
     saved.isPublic !== isPublic ||
     saved.avatarUrl !== avatarUrl ||
-    saved.username !== username
+    saved.username !== username ||
+    saved.playlistLayout !== playlistLayout
   ) {
-    setSaved({ displayName, bio, isPublic, avatarUrl, username });
+    setSaved({ displayName, bio, isPublic, avatarUrl, username, playlistLayout });
     setNameValue(displayName);
     setBioValue(bio);
     setIsPublicValue(isPublic);
     setPhoto(avatarUrl);
+    setLayoutValue(playlistLayout);
     setUsernameValue("");
   }
 
@@ -77,6 +90,7 @@ export function SettingsForm({
     nameValue !== displayName ||
     bioValue !== bio ||
     isPublicValue !== isPublic ||
+    layoutValue !== playlistLayout ||
     (photo ?? "") !== (avatarUrl ?? "");
 
   // Case-sensitive: the action treats a casing-only edit as a real change, so
@@ -231,6 +245,38 @@ export function SettingsForm({
               style={{ left: isPublicValue ? 11 : 1 }}
             />
           </button>
+        </div>
+
+        <div className="flex w-full flex-col gap-3">
+          <span className="flex flex-col gap-1">
+            <span className={LABEL}>Playlist Layout</span>
+            <span className={NOTE}>
+              Choose the way you&apos;d like your playlists shown on your page
+            </span>
+          </span>
+          {/* The value that submits; the buttons below are what is seen. */}
+          <input type="hidden" name="playlistLayout" value={layoutValue} />
+          <span className="flex items-center gap-3">
+            {PLAYLIST_LAYOUTS.map((option) => {
+              const active = layoutValue === option;
+              return (
+                <button
+                  key={option}
+                  type="button"
+                  aria-pressed={active}
+                  onClick={() => setLayoutValue(option)}
+                  className={`cursor-pointer rounded-[8px] px-6 py-3 text-sm font-bold capitalize transition-colors ${
+                    active
+                      ? "text-[#313131]"
+                      : "bg-surface-raised text-[#c8c8c8] hover:text-white"
+                  }`}
+                  style={active ? { background: "var(--gold)" } : undefined}
+                >
+                  {option}
+                </button>
+              );
+            })}
+          </span>
         </div>
 
         {profileState?.error && (

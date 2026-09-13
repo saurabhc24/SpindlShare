@@ -152,6 +152,15 @@ a separate ISR cache entry.
 
 ### Settings
 
+Playlist Layout picks how the public page arranges playlists: the stacked deck
+or the arc carousel. It is a `String` column rather than a Postgres enum --
+adding a third layout should not need a migration that rewrites every row, which
+is what altering an enum costs. Anything unrecognised falls back to `stacked`,
+so a hand-edited or future value renders rather than breaks.
+
+Both layouts share the same profile chrome, so choosing one swaps the playlist
+component and nothing else.
+
 Photo uploads go to Vercel Blob and need `BLOB_READ_WRITE_TOKEN`; without it the
 route answers 501 and says so rather than failing silently. The route checks type
 and size itself — `accept="image/*"` only filters the picker, it promises nothing

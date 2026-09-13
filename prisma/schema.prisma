@@ -102,6 +102,10 @@ model Profile {
   bio         String?  @db.VarChar(280)
   avatarUrl   String?
   theme       String   @default("default")
+  /// How the public page arranges playlists: "stacked" or "arc". A string
+  /// rather than an enum -- adding a layout should not need a migration that
+  /// rewrites every row, which is what altering a Postgres enum costs.
+  playlistLayout String @default("stacked")
 
   /// The user's own visibility choice, editable from Settings.
   isPublic Boolean @default(true)

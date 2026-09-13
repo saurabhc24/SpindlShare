@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import { requireProfile } from "@/lib/dal";
 
+import { asPlaylistLayout } from "./layouts";
 import { SettingsForm } from "./settings-form";
 
 export default async function SettingsPage() {
@@ -62,6 +63,7 @@ export default async function SettingsPage() {
             isPublic={profile.isPublic}
             username={profile.username}
             avatarUrl={profile.avatarUrl}
+            playlistLayout={asPlaylistLayout(profile.playlistLayout)}
           />
         </main>
 

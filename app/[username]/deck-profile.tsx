@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 
+import { Arc } from "./arc";
 import { Deck } from "./deck";
 import type { ShowcaseItem } from "./playlist-item";
 
@@ -20,6 +21,7 @@ export function DeckProfile({
   items,
   shareUrl,
   shareDisplay,
+  layout,
 }: {
   displayName: string;
   handle: string;
@@ -28,6 +30,8 @@ export function DeckProfile({
   items: ShowcaseItem[];
   shareUrl: string;
   shareDisplay: string;
+  /** The owner's choice from Settings. The chrome is the same either way. */
+  layout: "stacked" | "arc";
 }) {
   // Tracks are summed from what each playlist reports. A provider that gives no
   // count contributes nothing rather than breaking the line, so the total is
@@ -56,7 +60,7 @@ export function DeckProfile({
           "radial-gradient(120% 70% at 50% -10%, oklch(0.24 0.02 70) 0%, oklch(0.15 0.015 65) 34%, #060504 78%)",
       }}
     >
-      <Deck items={items} />
+      {layout === "arc" ? <Arc items={items} /> : <Deck items={items} />}
 
       {/* pointer-events-none so the deck stays draggable underneath; the button
           re-enables them for itself. */}

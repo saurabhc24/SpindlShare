@@ -8,6 +8,8 @@ import { surfaceLabel } from "@/lib/playlist-link";
 import { normalizeUsername } from "@/lib/username";
 import { providerLabel } from "@/components/provider-badge";
 
+import { asPlaylistLayout } from "@/app/dashboard/settings/layouts";
+
 import { DeckProfile } from "./deck-profile";
 import { type ShowcaseItem } from "./playlist-item";
 
@@ -114,6 +116,7 @@ export default async function PublicProfilePage(
           items={items}
           shareUrl={absoluteUrl(`/${profile.usernameNormalized}`)}
           shareDisplay={displayUrl(`/${profile.usernameNormalized}`)}
+          layout={asPlaylistLayout(profile.playlistLayout)}
         />
       </div>
     );

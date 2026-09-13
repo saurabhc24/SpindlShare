@@ -12,6 +12,7 @@ import { RATE_LIMITS, rateLimitAll } from "@/lib/rate-limit";
 import { validateUsername } from "@/lib/username";
 
 import { BIO_MAX } from "./limits";
+import { PLAYLIST_LAYOUTS } from "./layouts";
 
 export type ActionState = { error?: string; success?: string } | undefined;
 
@@ -21,6 +22,7 @@ const profileSchema = z.object({
   isPublic: z.boolean(),
   // Written by the upload route, so this only ever carries a URL we produced.
   avatarUrl: z.string().url().max(500).optional().or(z.literal("")),
+  playlistLayout: z.enum(PLAYLIST_LAYOUTS).optional(),
 });
 
 async function clientIpFromHeaders() {
@@ -52,12 +54,13 @@ export async function updateProfile(
     // An unchecked checkbox submits nothing at all.
     isPublic: formData.get("isPublic") === "on",
     avatarUrl: formData.get("avatarUrl") ?? undefined,
+    playlistLayout: formData.get("playlistLayout") ?? undefined,
   });
   if (!parsed.success) {
     return { error: parsed.error.issues[0].message };
   }
 
-  const { displayName, bio, isPublic, avatarUrl } = parsed.data;
+  const { displayName, bio, isPublic, avatarUrl, playlistLayout } = parsed.data;
 
   await prisma.profile.update({
     where: { userId: user.id },
@@ -67,6 +70,7 @@ export async function updateProfile(
       isPublic,
       // Absent means the picker was never touched; keep whatever is stored.
       ...(avatarUrl === undefined ? {} : { avatarUrl: avatarUrl || null }),
+      ...(playlistLayout === undefined ? {} : { playlistLayout }),
     },
   });
 
