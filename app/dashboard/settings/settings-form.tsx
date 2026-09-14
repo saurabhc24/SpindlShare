@@ -5,6 +5,7 @@ import { useActionState, useRef, useState } from "react";
 import {
   changeUsername,
   deleteMyAccount,
+  setPlaylistLayout,
   updateProfile,
   type ActionState,
 } from "./actions";
@@ -44,6 +45,10 @@ export function SettingsForm({
     ActionState,
     FormData
   >(deleteMyAccount, undefined);
+  const [layoutState, layoutAction, layoutPending] = useActionState<
+    ActionState,
+    FormData
+  >(setPlaylistLayout, undefined);
 
   const [nameValue, setNameValue] = useState(displayName);
   const [bioValue, setBioValue] = useState(bio);
@@ -90,7 +95,6 @@ export function SettingsForm({
     nameValue !== displayName ||
     bioValue !== bio ||
     isPublicValue !== isPublic ||
-    layoutValue !== playlistLayout ||
     (photo ?? "") !== (avatarUrl ?? "");
 
   // Case-sensitive: the action treats a casing-only edit as a real change, so
@@ -258,11 +262,6 @@ export function SettingsForm({
           </p>
         )}
 
-        {/* The layout's control is drawn below the username section, where the
-            design puts it, but its value belongs to this form -- a form cannot
-            wrap another, and the username form sits between the two. */}
-        <input type="hidden" name="playlistLayout" value={layoutValue} />
-
         <div className="flex w-full flex-col items-start">
           <button
             type="submit"
@@ -323,7 +322,9 @@ export function SettingsForm({
         </p>
       </form>
 
-      <div className="flex w-full flex-col gap-3">
+      {/* Saves on click, with no button of its own: one choice, nothing to
+          review, and it belongs to no other section's Save. */}
+      <form action={layoutAction} className="flex w-full flex-col gap-3">
         <span className="flex flex-col gap-1">
           <span className={LABEL}>Playlist Layout</span>
           <span className={NOTE}>
@@ -336,10 +337,15 @@ export function SettingsForm({
             return (
               <button
                 key={option}
-                type="button"
+                type="submit"
+                name="playlistLayout"
+                value={option}
                 aria-pressed={active}
+                disabled={layoutPending}
+                // Set at once so the choice reads as taken while the request is
+                // in flight; the action's revalidate confirms it.
                 onClick={() => setLayoutValue(option)}
-                className={`cursor-pointer rounded-[8px] px-6 py-3 text-sm font-bold capitalize transition-colors ${
+                className={`cursor-pointer rounded-[8px] px-6 py-3 text-sm font-bold capitalize transition-colors disabled:cursor-not-allowed ${
                   active
                     ? "text-[#313131]"
                     : "bg-surface-raised text-[#c8c8c8] hover:text-white"
@@ -351,7 +357,12 @@ export function SettingsForm({
             );
           })}
         </span>
-      </div>
+        {layoutState?.error && (
+          <p role="alert" className="note note-error w-full">
+            {layoutState.error}
+          </p>
+        )}
+      </form>
 
       <div className="flex w-full flex-col items-center gap-4">
         <p className="w-full text-center text-sm text-white">

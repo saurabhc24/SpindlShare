@@ -167,11 +167,11 @@ the band's edge instead ended the ribbon on a hard line, and fading each cover b
 itself let one sit at 0.39 opacity with half of it over the header -- the mask is
 what actually guarantees nothing paints there.
 
-The control is drawn below the username section, but its value belongs to the
-profile form above -- one Save changes button owns the whole profile. A form
-cannot wrap another and the username form sits between them, so the hidden input
-stays in the profile form while the visible buttons render lower and drive the
-same state.
+The control saves on click, in its own form and its own action. It is one choice
+with nothing to review, so waiting on the profile section's Save changes read as
+a bug -- the section sits outside that form, and looked independent of it. The
+buttons are submit buttons carrying the value, so picking one is the save; there
+is still no Save button of its own, which is what the design asks for.
 
 Photo uploads go to Vercel Blob and need `BLOB_READ_WRITE_TOKEN`; without it the
 route answers 501 and says so rather than failing silently. The route checks type

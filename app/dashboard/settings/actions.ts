@@ -22,7 +22,6 @@ const profileSchema = z.object({
   isPublic: z.boolean(),
   // Written by the upload route, so this only ever carries a URL we produced.
   avatarUrl: z.string().url().max(500).optional().or(z.literal("")),
-  playlistLayout: z.enum(PLAYLIST_LAYOUTS).optional(),
 });
 
 async function clientIpFromHeaders() {
@@ -54,13 +53,12 @@ export async function updateProfile(
     // An unchecked checkbox submits nothing at all.
     isPublic: formData.get("isPublic") === "on",
     avatarUrl: formData.get("avatarUrl") ?? undefined,
-    playlistLayout: formData.get("playlistLayout") ?? undefined,
   });
   if (!parsed.success) {
     return { error: parsed.error.issues[0].message };
   }
 
-  const { displayName, bio, isPublic, avatarUrl, playlistLayout } = parsed.data;
+  const { displayName, bio, isPublic, avatarUrl } = parsed.data;
 
   await prisma.profile.update({
     where: { userId: user.id },
@@ -70,7 +68,6 @@ export async function updateProfile(
       isPublic,
       // Absent means the picker was never touched; keep whatever is stored.
       ...(avatarUrl === undefined ? {} : { avatarUrl: avatarUrl || null }),
-      ...(playlistLayout === undefined ? {} : { playlistLayout }),
     },
   });
 
@@ -86,6 +83,43 @@ export async function updateProfile(
   revalidatePath("/dashboard/settings");
 
   return { success: "Saved." };
+}
+
+/**
+ * Saves the playlist layout on its own. It is a single choice with no text to
+ * review, so the page applies it the moment it is picked -- routing it through
+ * updateProfile would have made it wait on a Save button it does not belong to.
+ */
+export async function setPlaylistLayout(
+  _prev: ActionState,
+  formData: FormData
+): Promise<ActionState> {
+  const { user, profile } = await requireProfile();
+
+  const limited = await rateLimitAll([
+    { key: `profile:user:${user.id}`, rule: RATE_LIMITS.profilePerAccount },
+    { key: `profile:ip:${await clientIpFromHeaders()}`, rule: RATE_LIMITS.profilePerIp },
+  ]);
+  if (!limited.ok) {
+    return { error: "Too many changes just now. Please wait a moment." };
+  }
+
+  const parsed = z
+    .enum(PLAYLIST_LAYOUTS)
+    .safeParse(formData.get("playlistLayout"));
+  if (!parsed.success) return { error: "That layout isn't available." };
+
+  await prisma.profile.update({
+    where: { userId: user.id },
+    data: { playlistLayout: parsed.data },
+  });
+
+  // The public page is edge-cached, so the new layout would not show up for
+  // visitors until it expired.
+  revalidatePath(`/${profile.usernameNormalized}`);
+  revalidatePath("/dashboard/settings");
+
+  return { success: "Layout updated." };
 }
 
 export async function changeUsername(
