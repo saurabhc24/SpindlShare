@@ -161,6 +161,12 @@ so a hand-edited or future value renders rather than breaks.
 Both layouts share the same profile chrome, so choosing one swaps the playlist
 component and nothing else.
 
+The arc's ends hang past the band the chrome leaves it, blurring as they go, and
+a mask on the stage dissolves them before the header and footer. Culling them at
+the band's edge instead ended the ribbon on a hard line, and fading each cover by
+itself let one sit at 0.39 opacity with half of it over the header -- the mask is
+what actually guarantees nothing paints there.
+
 The control is drawn below the username section, but its value belongs to the
 profile form above -- one Save changes button owns the whole profile. A form
 cannot wrap another and the username form sits between them, so the hidden input

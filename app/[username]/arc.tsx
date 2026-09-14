@@ -37,10 +37,12 @@ const MAX_END_BLUR = 6;
 /** Space between the selected cover and its details. */
 const DETAIL_GAP = 40;
 /** Room the profile header and footer need, in px. */
-const CHROME_TOP = 100;
-const CHROME_BOTTOM = 76;
-/** How far a cover fades over as it approaches the chrome. */
-const EDGE_FADE = 34;
+const CHROME_TOP = 96;
+const CHROME_BOTTOM = 84;
+/** Blur on a cover fully past the band's edge, in px. */
+const EDGE_BLUR = 10;
+/** How long the stage's fade-out runs at each end of the band. */
+const MASK_RAMP = 64;
 
 function hueFromKey(key: string): number {
   let hash = 0x811c9dc5;
@@ -171,6 +173,19 @@ export function Arc({ items }: { items: ShowcaseItem[] }) {
   // so a cover is faded out before it reaches either and dropped once past.
   const safeTop = CHROME_TOP;
   const safeBottom = Math.max(safeTop + 1, size.h - CHROME_BOTTOM);
+  // Transparent over the chrome, solid through the band, with a soft ramp
+  // between -- so the ribbon's ends dissolve instead of ending on a line.
+  // The ramps sit INSIDE the band, reaching full opacity only once past the
+  // chrome. Starting them at the band's edge left the mask two-thirds opaque
+  // where the header still is, so colour bled through it.
+  const maskGradient =
+    `linear-gradient(to bottom,` +
+    ` transparent 0px,` +
+    ` transparent ${safeTop}px,` +
+    ` #000 ${safeTop + MASK_RAMP}px,` +
+    ` #000 ${safeBottom - MASK_RAMP}px,` +
+    ` transparent ${safeBottom}px,` +
+    ` transparent 100%)`;
 
   // The arc's rightmost point, where the selected cover lands.
   const centreX = -radius + coverSize * 0.9;
@@ -191,6 +206,13 @@ export function Arc({ items }: { items: ShowcaseItem[] }) {
       <div
         ref={stageRef}
         className="relative h-[100dvh] w-full touch-none overflow-hidden select-none"
+        style={{
+          // The guarantee that nothing paints over the chrome: covers may hang
+          // past the band, and this dissolves them before the header or footer
+          // rather than relying on each one to fade itself out in time.
+          maskImage: maskGradient,
+          WebkitMaskImage: maskGradient,
+        }}
       >
         {/* The rail the covers ride, drawn as a ring far wider than the stage so
             only its right edge shows. */}
@@ -218,17 +240,21 @@ export function Arc({ items }: { items: ShowcaseItem[] }) {
           const away = Math.abs(step);
           const isSelected = away < 0.5;
 
-          // A cover's own edges, not its centre: half of one still overlaps the
-          // header when its centre has cleared it.
           const top = y - coverSize / 2;
           const bottom = y + coverSize / 2;
+          // Culled only once wholly outside the band. Anything overlapping it is
+          // drawn and clipped, so the ribbon runs to the edge instead of ending
+          // at the last cover that happened to fit.
           if (top > safeBottom || bottom < safeTop) return null;
-          // Measured on the edge that would intrude: a cover's TOP against the
-          // header and its BOTTOM against the footer. Using the far edge let a
-          // cover sit at 0.39 opacity while half of it lay over the header.
-          const intoTop = (top - safeTop) / EDGE_FADE;
-          const intoBottom = (safeBottom - bottom) / EDGE_FADE;
-          const chromeFade = Math.max(0, Math.min(1, intoTop, intoBottom));
+
+          // How deep a cover has pushed past the band, as a fraction of itself.
+          // Drives the blur and the dimming together, so a cover dissolves into
+          // the chrome rather than being chopped at a hard line.
+          const overTop = Math.max(0, safeTop - top) / coverSize;
+          const overBottom = Math.max(0, bottom - safeBottom) / coverSize;
+          const over = Math.max(overTop, overBottom);
+          const chromeFade = Math.max(0.05, 1 - over * 1.35);
+          const chromeBlur = over * EDGE_BLUR;
 
           return (
             <button
@@ -260,9 +286,13 @@ export function Arc({ items }: { items: ShowcaseItem[] }) {
                   : "inset 0 0 0 1px rgba(0,0,0,0.35)",
                 // Dimmed so the selection reads, and blurred further out so the
                 // ribbon dissolves at the ends of the arc rather than stopping.
-                filter: isSelected
-                  ? "none"
-                  : `brightness(0.62) blur(${endBlur(away, blurReach).toFixed(2)}px)`,
+                // Two blurs, whichever is stronger: distance along the arc,
+                // and depth past the band. The second is what makes the ribbon
+                // dissolve into the header and footer instead of stopping.
+                filter: `brightness(${isSelected ? 1 : 0.62}) blur(${Math.max(
+                  isSelected ? 0 : endBlur(away, blurReach),
+                  chromeBlur
+                ).toFixed(2)}px)`,
                 zIndex: Math.round(500 - away * 10),
               }}
             >
