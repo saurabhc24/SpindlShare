@@ -4,6 +4,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import type { MusicProvider } from "@/app/generated/prisma/enums";
 
+import { ProviderIcon } from "@/components/provider-badge";
+
 import { PlayerOverlay } from "./player-overlay";
 import type { ShowcaseItem } from "./playlist-item";
 
@@ -474,9 +476,11 @@ function Card({
           {item.title}
         </p>
         <p className="flex items-center justify-end gap-2 text-xs text-[#c8c8c8]">
-          <span
-            className="inline-block size-1.5 shrink-0 rounded-full"
-            style={{ background: PROVIDER_DOT[item.provider] }}
+          {/* The service's own mark rather than a coloured dot. */}
+          <ProviderIcon
+            provider={item.provider}
+            className="size-3.5 shrink-0"
+            style={{ color: PROVIDER_DOT[item.provider] }}
           />
           <span className="truncate">{item.providerLabel}</span>
           {item.trackCount != null && (

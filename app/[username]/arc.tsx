@@ -4,6 +4,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import type { MusicProvider } from "@/app/generated/prisma/enums";
 
+import { ProviderIcon } from "@/components/provider-badge";
+
 import { PlayerOverlay } from "./player-overlay";
 import type { ShowcaseItem } from "./playlist-item";
 
@@ -340,9 +342,12 @@ export function Arc({ items }: { items: ShowcaseItem[] }) {
           </p>
 
           <span className="mt-2 flex items-center gap-4">
-            <span
-              className="inline-block size-2 rounded-full"
-              style={{ background: PROVIDER_DOT[selected.provider] }}
+            {/* The service's own mark, in its own colour: a coloured dot asked
+                the reader to already know which brand green or red meant. */}
+            <ProviderIcon
+              provider={selected.provider}
+              className="size-4 shrink-0"
+              style={{ color: PROVIDER_DOT[selected.provider] }}
             />
           </span>
         </div>
