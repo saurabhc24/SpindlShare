@@ -36,6 +36,11 @@ const TOUCH_THRESHOLD = 24;
 const MAX_END_BLUR = 6;
 /** Space between the selected cover and its details. */
 const DETAIL_GAP = 40;
+/** Room the profile header and footer need, in px. */
+const CHROME_TOP = 100;
+const CHROME_BOTTOM = 76;
+/** How far a cover fades over as it approaches the chrome. */
+const EDGE_FADE = 34;
 
 function hueFromKey(key: string): number {
   let hash = 0x811c9dc5;
@@ -162,6 +167,11 @@ export function Arc({ items }: { items: ShowcaseItem[] }) {
   // the span, is the furthest anything is ever drawn.
   const blurReach = Math.min(span, count / 2);
 
+  // The band the ribbon may occupy: the chrome owns the strips above and below,
+  // so a cover is faded out before it reaches either and dropped once past.
+  const safeTop = CHROME_TOP;
+  const safeBottom = Math.max(safeTop + 1, size.h - CHROME_BOTTOM);
+
   // The arc's rightmost point, where the selected cover lands.
   const centreX = -radius + coverSize * 0.9;
   // The selected cover sits at angle 0, so its centre is centreX + radius.
@@ -208,6 +218,18 @@ export function Arc({ items }: { items: ShowcaseItem[] }) {
           const away = Math.abs(step);
           const isSelected = away < 0.5;
 
+          // A cover's own edges, not its centre: half of one still overlaps the
+          // header when its centre has cleared it.
+          const top = y - coverSize / 2;
+          const bottom = y + coverSize / 2;
+          if (top > safeBottom || bottom < safeTop) return null;
+          // Measured on the edge that would intrude: a cover's TOP against the
+          // header and its BOTTOM against the footer. Using the far edge let a
+          // cover sit at 0.39 opacity while half of it lay over the header.
+          const intoTop = (top - safeTop) / EDGE_FADE;
+          const intoBottom = (safeBottom - bottom) / EDGE_FADE;
+          const chromeFade = Math.max(0, Math.min(1, intoTop, intoBottom));
+
           return (
             <button
               key={item.id}
@@ -230,7 +252,7 @@ export function Arc({ items }: { items: ShowcaseItem[] }) {
                 background: item.coverImageUrl
                   ? "#0a0806"
                   : coverGradient(item.id),
-                opacity: Math.max(0.12, 1 - away / (span * 0.75)),
+                opacity: Math.max(0.12, 1 - away / (span * 0.75)) * chromeFade,
                 // Inset, not an outer ring: clip-path cuts off anything drawn
                 // outside the shape, so an outer box-shadow simply vanished.
                 boxShadow: isSelected
@@ -265,7 +287,11 @@ export function Arc({ items }: { items: ShowcaseItem[] }) {
             // Measured from where the selected cover actually sits -- it is
             // centred on the arc, so its right edge is not at coverSize.
             left: selectedRight + DETAIL_GAP,
-            top: centreY - coverSize * 0.55,
+            // Centred on the same midline the selected cover sits on. It used
+            // to guess half the block's height from the cover size, which drifts
+            // as soon as the text wraps or the cover changes size.
+            top: centreY,
+            transform: "translateY(-50%)",
             maxWidth: `calc(100% - ${selectedRight + DETAIL_GAP + 16}px)`,
           }}
         >
