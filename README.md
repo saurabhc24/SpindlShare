@@ -161,6 +161,13 @@ so a hand-edited or future value renders rather than breaks.
 Both layouts share the same profile chrome, so choosing one swaps the playlist
 component and nothing else.
 
+The selected playlist's name travels the way the gesture did -- scrolling down
+brings it up from below, scrolling up drops it in from above -- so the details
+read as part of the same ribbon rather than as a caption being swapped. The
+direction is latched at the moment the selection changes, not read live: keying
+the animation on a direction that could change mid-motion ran it twice per
+gesture, once for the outgoing name and again for the incoming one.
+
 The arc's ends hang past the band the chrome leaves it, blurring as they go, and
 a mask on the stage dissolves them before the header and footer. Culling them at
 the band's edge instead ended the ribbon on a hard line, and fading each cover by

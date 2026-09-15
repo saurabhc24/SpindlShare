@@ -591,3 +591,46 @@ body {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* --- arc details ------------------------------------------------------------
+   The selected playlist's name in the arc carousel. It travels the way the
+   scroll did, so the text reads as the same ribbon moving rather than as a
+   caption being swapped out. */
+
+@keyframes arcDetailUp {
+  from {
+    opacity: 0;
+    translate: 0 14px;
+  }
+  to {
+    opacity: 1;
+    translate: 0 0;
+  }
+}
+
+@keyframes arcDetailDown {
+  from {
+    opacity: 0;
+    translate: 0 -14px;
+  }
+  to {
+    opacity: 1;
+    translate: 0 0;
+  }
+}
+
+.arc-detail-up {
+  animation: arcDetailUp 0.34s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.arc-detail-down {
+  animation: arcDetailDown 0.34s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .arc-detail-up,
+  .arc-detail-down {
+    animation: none !important;
+    translate: none !important;
+  }
+}

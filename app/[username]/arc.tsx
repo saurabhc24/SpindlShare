@@ -1,6 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
 
 import type { MusicProvider } from "@/app/generated/prisma/enums";
 
@@ -78,6 +84,9 @@ function coverGradient(key: string): string {
 export function Arc({ items }: { items: ShowcaseItem[] }) {
   const [offset, setOffset] = useState(0);
   const [playing, setPlaying] = useState<ShowcaseItem | null>(null);
+  // Which way the last gesture went. A ref, not state: it must not itself cause
+  // a render, or the name animates once for the old title and again for the new.
+  const directionRef = useRef(1);
   const stageRef = useRef<HTMLDivElement | null>(null);
   const offsetRef = useRef(0);
   const animating = useRef(false);
@@ -101,11 +110,12 @@ export function Arc({ items }: { items: ShowcaseItem[] }) {
     if (!stage || count === 0) return;
 
     let frame = 0;
-    const advance = (direction: number) => {
+    const advance = (step: number) => {
       if (animating.current) return;
       animating.current = true;
+      directionRef.current = step;
       const from = offsetRef.current;
-      const to = Math.round(from) + direction;
+      const to = Math.round(from) + step;
       const started = performance.now();
       const tick = (now: number) => {
         const t = Math.min(1, (now - started) / ADVANCE_MS);
@@ -155,7 +165,21 @@ export function Arc({ items }: { items: ShowcaseItem[] }) {
   }, [count]);
 
   const selectedIndex = ((Math.round(offset) % count) + count) % count;
-  const selected = items[selectedIndex];
+
+  // The direction as it was when this name became the selection. Latched in a
+  // layout effect so the class is settled before the paint that starts the
+  // animation, and cannot change under a running one and restart it.
+  const [entry, setEntry] = useState({ index: selectedIndex, direction: 1 });
+  useLayoutEffect(() => {
+    setEntry((prev) =>
+      prev.index === selectedIndex
+        ? prev
+        : { index: selectedIndex, direction: directionRef.current }
+    );
+  }, [selectedIndex]);
+  // Drawn from the latched entry, not the live index, so the key, the title and
+  // the direction class always describe the same selection.
+  const detail = items[entry.index] ?? items[selectedIndex];
 
   // Geometry. The circle's centre sits left of the stage, so the arc bulges
   // right and the covers nearest the middle come furthest forward.
@@ -197,6 +221,7 @@ export function Arc({ items }: { items: ShowcaseItem[] }) {
 
   const select = useCallback((delta: number) => {
     if (animating.current) return;
+    directionRef.current = Math.sign(delta) || 1;
     offsetRef.current = Math.round(offsetRef.current) + delta;
     setOffset(offsetRef.current);
   }, []);
@@ -333,22 +358,32 @@ export function Arc({ items }: { items: ShowcaseItem[] }) {
             className="absolute top-0 -left-3 h-full w-[3px]"
             style={{ background: "var(--accent)" }}
           />
-          <p className="truncate text-base font-medium tracking-wide text-white uppercase">
-            {selected.title}
-          </p>
-          <p className="truncate text-xs text-[#c8c8c8]">
-            {selected.providerLabel}
-            {selected.trackCount != null && ` · ${selected.trackCount} tracks`}
-          </p>
-
-          <span className="mt-2 flex items-center gap-4">
-            {/* The service's own mark, in its own colour: a coloured dot asked
-                the reader to already know which brand green or red meant. */}
-            <ProviderIcon
-              provider={selected.provider}
-              className="size-4 shrink-0"
-              style={{ color: PROVIDER_DOT[selected.provider] }}
-            />
+          {/* Keyed on the selection so React remounts it and the animation runs
+              again; the wrapper keeps the -50% centring the animation would fight. */}
+          <span
+            key={entry.index}
+            className={`flex min-w-0 flex-col gap-1 ${
+              entry.direction < 0 ? "arc-detail-down" : "arc-detail-up"
+            }`}
+          >
+            <p className="truncate text-base font-medium tracking-wide text-white uppercase">
+              {detail.title}
+            </p>
+            <p className="truncate text-xs text-[#c8c8c8]">
+              {detail.providerLabel}
+              {detail.trackCount != null && ` · ${detail.trackCount} tracks`}
+            </p>
+            {/* Inside the animated wrapper: it describes this playlist, so it
+                travels with the name rather than staying put as the text moves. */}
+            <span className="mt-2 flex items-center gap-4">
+              {/* The service's own mark, in its own colour: a coloured dot asked
+                  the reader to already know which brand green or red meant. */}
+              <ProviderIcon
+                provider={detail.provider}
+                className="size-4 shrink-0"
+                style={{ color: PROVIDER_DOT[detail.provider] }}
+              />
+            </span>
           </span>
         </div>
       </div>
