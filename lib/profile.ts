@@ -3,15 +3,15 @@ import { cache } from "react";
 import { prisma } from "@/lib/prisma";
 import { normalizeUsername } from "@/lib/username";
 
+/** Songs sent to the public page per playlist. Beyond this it links out. */
+export const PUBLIC_TRACK_LIMIT = 100;
+
 /**
  * Loads a public profile and the playlists it chooses to show, in display order.
  * Memoized per render pass so `generateMetadata` and the page body share one query.
  *
  * The profile lookup is a single indexed hit on Profile.usernameNormalized.
  */
-/** Songs sent to the public page per playlist. Beyond this it links out. */
-export const PUBLIC_TRACK_LIMIT = 100;
-
 export const getPublicProfile = cache(async (username: string) => {
   const normalized = normalizeUsername(username);
 
