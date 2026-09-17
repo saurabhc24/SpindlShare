@@ -16,8 +16,14 @@
 
 import type { MusicProvider } from "@/app/generated/prisma/enums";
 
-/** Heights the providers actually render at; the frame must match or it clips. */
-const EMBED_HEIGHT = { SPOTIFY: 352, YOUTUBE: 200 } as const;
+/**
+ * Heights the providers actually render at; the frame must match or it clips.
+ *
+ * Spotify picks its layout from the height it is given: 80 draws the compact
+ * transport bar, while 152 and 352 both draw a track list of their own. We list
+ * the songs ourselves below, so anything taller than 80 is a duplicate of them.
+ */
+const EMBED_HEIGHT = { SPOTIFY: 80, YOUTUBE: 200 } as const;
 
 export type PlaylistEmbed = {
   src: string;
@@ -53,7 +59,7 @@ export function playlistEmbed(
       // theme=0 is the dark player, which is the only one that sits in this scene.
       src: `https://open.spotify.com/embed/playlist/${externalId}?theme=0`,
       height: EMBED_HEIGHT.SPOTIFY,
-      // A scrolling track list, not a picture -- it wants a fixed height.
+      // A control bar, not a picture -- it wants a fixed height.
       aspectRatio: null,
       note: "30-second previews — sign in to Spotify for full tracks",
     };

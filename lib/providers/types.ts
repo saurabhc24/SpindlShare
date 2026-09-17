@@ -10,6 +10,23 @@ export type NormalizedPlaylist = {
   trackCount: number | null;
 };
 
+/**
+ * One song on a playlist, as much as every provider agrees on.
+ *
+ * Stored rather than fetched on demand: the public profile is read by visitors
+ * who hold no token of their own, so the owner's sync is the only moment the
+ * track list can be obtained.
+ */
+export type NormalizedTrack = {
+  /** Position in the playlist, 0-based, as the provider returned it. */
+  position: number;
+  title: string;
+  /** Joined artist names, or the channel for YouTube. Null when unknown. */
+  artist: string | null;
+  /** Null for a local file, an unavailable track, or a provider that omits it. */
+  durationMs: number | null;
+};
+
 /** The result of an OAuth code exchange or refresh. */
 export type OAuthTokens = {
   accessToken: string;
@@ -31,6 +48,11 @@ export type ProviderClient = {
   exchangeCode(code: string): Promise<OAuthTokens>;
   refreshAccessToken(refreshToken: string): Promise<OAuthTokens>;
   fetchPlaylists(accessToken: string): Promise<NormalizedPlaylist[]>;
+  /**
+   * The songs on one playlist. Separate from fetchPlaylists because it costs a
+   * request per playlist (more for a long one), so sync decides when to pay it.
+   */
+  fetchTracks(accessToken: string, externalId: string): Promise<NormalizedTrack[]>;
 };
 
 export class ProviderAuthError extends Error {

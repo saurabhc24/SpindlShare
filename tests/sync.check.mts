@@ -16,6 +16,8 @@ type FetchArgs = Parameters<typeof fetch>;
 
 let playlistPayload: unknown = null;
 let refreshCalls = 0;
+let trackPayload: unknown = { items: [], next: null };
+const trackCalls: string[] = [];
 
 const realFetch = globalThis.fetch;
 globalThis.fetch = (async (input: FetchArgs[0], init?: FetchArgs[1]) => {
@@ -35,6 +37,17 @@ globalThis.fetch = (async (input: FetchArgs[0], init?: FetchArgs[1]) => {
 
   if (url.startsWith("https://api.spotify.com/v1/me/playlists")) {
     return new Response(JSON.stringify(playlistPayload), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+
+  // Tracks for one playlist. Stubbed like the rest: without this the call would
+  // fall through to realFetch and hit Spotify's live API from a test.
+  const tracksMatch = /\/v1\/playlists\/([^/]+)\/tracks/.exec(url);
+  if (tracksMatch) {
+    trackCalls.push(tracksMatch[1]);
+    return new Response(JSON.stringify(trackPayload), {
       status: 200,
       headers: { "Content-Type": "application/json" },
     });
@@ -119,6 +132,11 @@ async function main() {
     orderBy: { sortOrder: "asc" },
   });
   check("new imports default to hidden", afterFirst.every((p) => !p.visible));
+  check(
+    "spends no track requests while every playlist is still hidden",
+    trackCalls.length === 0,
+    `(calls=${JSON.stringify(trackCalls)})`
+  );
   check("assigns increasing sortOrder", afterFirst[0].sortOrder < afterFirst[1].sortOrder);
   check("maps cover art and track count", afterFirst[0].coverImageUrl?.includes(".jpg") === true && afterFirst[0].trackCount === 20);
 
@@ -137,8 +155,38 @@ async function main() {
     makeItem("p3", "Late night", 8),
   ]);
 
+  trackPayload = {
+    next: null,
+    items: [
+      { track: { name: "Nights", duration_ms: 307_000, type: "track", artists: [{ name: "Frank Ocean" }] } },
+      // A podcast episode on a playlist: shares the endpoint, is not a song.
+      { track: { name: "Some Episode", duration_ms: 1_000, type: "episode", artists: [] } },
+      // A removed or local track comes back without a name.
+      { track: { name: null, duration_ms: null, type: "track", artists: [] } },
+      { track: { name: "Redbone", duration_ms: 326_000, type: "track", artists: [{ name: "Childish Gambino" }, { name: "Someone" }] } },
+    ],
+  };
+  trackCalls.length = 0;
+
   const second = await syncProvider({ userId: user.id, connection: { ...refreshed, provider: "SPOTIFY" } });
   check("second sync reports 1 new + 1 stale", second.added === 1 && second.markedStale === 1, JSON.stringify(second));
+
+  check(
+    "fetches tracks only for the playlist the user made visible",
+    trackCalls.length === 1 && trackCalls[0] === "p1",
+    `(calls=${JSON.stringify(trackCalls)})`
+  );
+  check("reports what it stored", second.tracksStored === 2, `(stored=${second.tracksStored})`);
+
+  const p1Tracks = await prisma.track.findMany({
+    where: { playlist: { userId: user.id, externalId: "p1" } },
+    orderBy: { position: "asc" },
+  });
+  check("stores the songs in order", p1Tracks.length === 2 && p1Tracks[0].title === "Nights" && p1Tracks[1].title === "Redbone", JSON.stringify(p1Tracks.map((t) => t.title)));
+  check("skips episodes and nameless entries", p1Tracks.every((t) => t.title !== "Some Episode"));
+  check("positions are contiguous after the skips", p1Tracks[0].position === 0 && p1Tracks[1].position === 1, JSON.stringify(p1Tracks.map((t) => t.position)));
+  check("joins multiple artists", p1Tracks[1].artist === "Childish Gambino, Someone", String(p1Tracks[1].artist));
+  check("keeps durations", p1Tracks[0].durationMs === 307_000, String(p1Tracks[0].durationMs));
 
   const p1 = await prisma.playlist.findFirstOrThrow({
     where: { userId: user.id, externalId: "p1" },
@@ -172,7 +220,18 @@ async function main() {
   });
   check("un-flags a playlist that reappears", p2Back.isStale === false);
 
-  // Cleanup
+  // The same two songs came back: a re-sync must replace the list, not append
+  // to it, or a playlist would grow a duplicate of itself on every run.
+  const p1TracksAgain = await prisma.track.findMany({
+    where: { playlist: { userId: user.id, externalId: "p1" } },
+  });
+  check(
+    "re-syncing replaces the song list rather than duplicating it",
+    p1TracksAgain.length === 2,
+    `(rows=${p1TracksAgain.length})`
+  );
+
+  // Cleanup. Tracks go with their playlist by cascade.
   await prisma.playlist.deleteMany({ where: { userId: user.id } });
   await prisma.connectedAccount.deleteMany({ where: { userId: user.id } });
   await prisma.user.delete({ where: { id: user.id } });

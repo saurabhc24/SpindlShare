@@ -28,15 +28,15 @@ model User {
   /// be counted and undone, which means every path that could resurface the
   /// account has to exclude it -- the public profile lookup, the rename
   /// redirect, the cleanup cron, and sign-in itself.
-  deletedAt DateTime?
+  deletedAt     DateTime?
   /// Where `email` goes when the account is deleted.
   ///
   /// `email` carries a unique index, so leaving the address in place would bar
   /// that person from ever signing up again -- the one genuinely destructive
   /// thing a *reversible* delete could do. Moving it here frees the index and
   /// still leaves the address on the row, so a restore can put it back.
-  deletedEmail    String?
-  deletedReason   String?   @db.VarChar(280)
+  deletedEmail  String?
+  deletedReason String?   @db.VarChar(280)
 
   accounts          Account[]
   sessions          Session[]
@@ -92,28 +92,28 @@ model Profile {
   userId String @unique
 
   /// As typed by the user, for display only. Never used for lookups.
-  username String
+  username           String
   /// NFKC + lowercase. The uniqueness key and the only lookup path.
   /// Postgres `citext` would work too, but Prisma can only model it as
   /// Unsupported(), which is unusable in typed where clauses.
   usernameNormalized String @unique
 
-  displayName String?
-  bio         String?  @db.VarChar(280)
-  avatarUrl   String?
-  theme       String   @default("default")
+  displayName    String?
+  bio            String? @db.VarChar(280)
+  avatarUrl      String?
+  theme          String  @default("default")
   /// How the public page arranges playlists: "stacked" or "arc". A string
   /// rather than an enum -- adding a layout should not need a migration that
   /// rewrites every row, which is what altering a Postgres enum costs.
-  playlistLayout String @default("stacked")
+  playlistLayout String  @default("stacked")
 
   /// The user's own visibility choice, editable from Settings.
-  isPublic Boolean @default(true)
+  isPublic        Boolean   @default(true)
   /// Moderation override, settable only by an admin. Kept separate from
   /// isPublic so a suspended user can't simply un-hide themselves.
-  suspendedAt DateTime?
+  suspendedAt     DateTime?
   /// Why it was suspended -- shown in the admin list, never to the public.
-  suspendedReason String? @db.VarChar(280)
+  suspendedReason String?   @db.VarChar(280)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -189,8 +189,8 @@ model DailyVisit {
 }
 
 model Playlist {
-  id     String @id @default(cuid())
-  userId String
+  id                 String        @id @default(cuid())
+  userId             String
   /// Null for a playlist added by pasting its link, which belongs to no
   /// connected account. That distinction is load-bearing: sync marks vanished
   /// playlists stale by elimination, so it must skip rows it was never
@@ -212,7 +212,31 @@ model Playlist {
 
   user             User              @relation(fields: [userId], references: [id], onDelete: Cascade)
   connectedAccount ConnectedAccount? @relation(fields: [connectedAccountId], references: [id], onDelete: Cascade)
+  tracks           Track[]
 
   @@unique([userId, provider, externalId])
   @@index([userId, visible, sortOrder])
+}
+
+/// One song on a playlist, captured at sync time.
+///
+/// Stored rather than read live because the public profile is served to
+/// visitors who hold no provider token: the owner's sync is the only moment
+/// the track list can be obtained. Replaced wholesale on each sync, so there
+/// is no external id to reconcile against -- position is the identity.
+model Track {
+  id         String  @id @default(cuid())
+  playlistId String
+  /// 0-based, as the provider returned it.
+  position   Int
+  title      String
+  /// Joined artist names, or the channel for YouTube. Null when unknown.
+  artist     String?
+  /// Null for YouTube, whose playlistItems response omits it.
+  durationMs Int?
+
+  playlist Playlist @relation(fields: [playlistId], references: [id], onDelete: Cascade)
+
+  @@unique([playlistId, position])
+  @@index([playlistId, position])
 }

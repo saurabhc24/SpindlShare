@@ -89,6 +89,8 @@ export type SyncResult = {
   imported: number;
   added: number;
   markedStale: number;
+  /** Songs written for the visible playlists; 0 when none are shown yet. */
+  tracksStored: number;
 };
 
 /**
@@ -196,12 +198,58 @@ export async function syncProvider({
       data: { isStale: true },
     });
 
+    // Tracks are fetched only for playlists actually on the public page. Every
+    // other playlist would cost requests against a shared quota to store a list
+    // no visitor can reach, and new imports start hidden.
+    const visible = await prisma.playlist.findMany({
+      where: {
+        userId,
+        provider: connection.provider,
+        visible: true,
+        isStale: false,
+      },
+      select: { id: true, externalId: true },
+    });
+
+    let tracksStored = 0;
+    for (const playlist of visible) {
+      let tracks;
+      try {
+        tracks = await PROVIDERS[connection.provider].fetchTracks(
+          accessToken,
+          playlist.externalId
+        );
+      } catch (error) {
+        // Running out of quota part-way is worth surfacing, but the playlists
+        // themselves already synced -- so it stops here rather than undoing them.
+        if (error instanceof ProviderRateLimitError) break;
+        throw error;
+      }
+      if (tracks.length === 0) continue;
+
+      // Replaced wholesale: position is the identity, so a reordered or edited
+      // playlist would otherwise leave rows from the previous shape behind.
+      await prisma.$transaction([
+        prisma.track.deleteMany({ where: { playlistId: playlist.id } }),
+        prisma.track.createMany({
+          data: tracks.map((track) => ({
+            playlistId: playlist.id,
+            position: track.position,
+            title: track.title,
+            artist: track.artist,
+            durationMs: track.durationMs,
+          })),
+        }),
+      ]);
+      tracksStored += tracks.length;
+    }
+
     await prisma.connectedAccount.update({
       where: { id: connection.id },
       data: { lastSyncedAt: now, lastSyncStatus: "ok" },
     });
 
-    return { imported: fetched.length, added, markedStale };
+    return { imported: fetched.length, added, markedStale, tracksStored };
   } catch (error) {
     const message =
       error instanceof Error ? error.message : "Unknown sync failure";

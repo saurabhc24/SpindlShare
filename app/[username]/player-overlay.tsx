@@ -9,13 +9,19 @@ import { mountEmbedPlayer } from "./embed-player";
 import type { ShowcaseItem } from "./playlist-item";
 
 /**
- * The slide-up detail view: a turntable, and the provider's own player beneath it.
+ * The slide-up detail view: a turntable, the provider's own player, and the songs.
  *
- * The design's per-track list is not built, because the data behind it does not
- * exist for Spotify -- /v1/playlists/{id}/tracks answers 403 under an app token
- * and the playlist response nulls its `tracks` field. The embed carries the real
- * track list and the real controls, and is the only thing here that makes sound.
+ * The player is the provider's embed because it is the only thing here that can
+ * make sound. The song list beside it is ours, captured at the owner's sync --
+ * a visitor holds no provider token, so it cannot be read live.
  */
+
+/** mm:ss. Providers report milliseconds; nobody wants to read those. */
+function formatDuration(ms: number): string {
+  const total = Math.round(ms / 1000);
+  const minutes = Math.floor(total / 60);
+  return `${minutes}:${String(total % 60).padStart(2, "0")}`;
+}
 
 /**
  * Deck geometry, in one place because every circle below is derived from it.
@@ -44,6 +50,7 @@ export function PlayerOverlay({
   const hostRef = useRef<HTMLDivElement | null>(null);
   const embed = item ? playlistEmbed(item.provider, item.externalId) : null;
   const open = Boolean(item);
+  const tracks = item?.tracks ?? [];
 
   const handlePlayingChange = useCallback((next: boolean) => {
     setPlaying(next);
@@ -98,7 +105,9 @@ export function PlayerOverlay({
       style={{
         position: "absolute",
         inset: 0,
-        zIndex: 10,
+        // Above the profile chrome, which sits at 2000: this is a modal over the
+        // whole page, and at 10 the header, bio and footer printed through it.
+        zIndex: 3000,
         display: "flex",
         flexDirection: "column",
         background:
@@ -348,14 +357,13 @@ export function PlayerOverlay({
         </div>
       </div>
 
-      {/* THE PLAYER */}
+      {/* THE PLAYER, THEN THE SONGS */}
       <div
         style={{
           flex: "1 1 auto",
           display: "flex",
           flexDirection: "column",
-          justifyContent: "flex-end",
-          padding: "12px 12px 14px",
+          padding: "10px 16px 0",
           minHeight: 0,
         }}
       >
@@ -364,20 +372,20 @@ export function PlayerOverlay({
             {/* Matching YouTube's own 16:9 removes the bars we were adding
                 around the bars it already draws, so an art track's sleeve fills
                 the frame instead of floating in a letterbox. Spotify's player is
-                a list, so it keeps a fixed height. */}
+                a control bar, so it keeps a fixed height. */}
             <div
               className="embed-frame"
               style={
                 embed.aspectRatio
-                  ? { aspectRatio: embed.aspectRatio, width: "100%" }
-                  : { minHeight: embed.height }
+                  ? { aspectRatio: embed.aspectRatio, width: "100%", flex: "0 0 auto" }
+                  : { height: embed.height, flex: "0 0 auto" }
               }
             >
-              {/* The provider's API replaces this with its own iframe. */}
-              <div
-                ref={hostRef}
-                style={{ width: "100%", height: embed.aspectRatio ? "100%" : undefined }}
-              />
+              {/* The provider's API replaces this with its own iframe. Given a
+                  height rather than left to size itself: the Spotify branch used
+                  to set only the frame's minHeight, leaving a blank band under
+                  a player that renders shorter than the frame. */}
+              <div ref={hostRef} style={{ width: "100%", height: "100%" }} />
             </div>
             <p
               style={{
@@ -437,6 +445,134 @@ export function PlayerOverlay({
               </a>
             )}
           </div>
+        )}
+
+        {/* Nothing stored yet -- the owner has not synced since songs started
+            being kept. Said plainly, rather than leaving the space blank. */}
+        {item && tracks.length === 0 && (
+          <p
+            style={{
+              margin: "18px 4px 0",
+              fontSize: 11.5,
+              textAlign: "center",
+              color: "var(--ink-faint)",
+            }}
+          >
+            The song list appears once this playlist is synced again.
+          </p>
+        )}
+
+        {/* THE SONGS. The only scrolling region: the turntable and the player
+            hold their place while this runs under them. */}
+        {item && tracks.length > 0 && (
+          <ol
+            aria-label={`Songs in ${item.title}`}
+            style={{
+              flex: "1 1 auto",
+              minHeight: 0,
+              overflowY: "auto",
+              overscrollBehavior: "contain",
+              listStyle: "none",
+              margin: "12px 0 0",
+              padding: "0 0 16px",
+              // Hairline above the first row, so the list reads as a section
+              // rather than as text loose under the player.
+              borderTop: "1px solid var(--line)",
+            }}
+          >
+            {tracks.map((track) => (
+              <li
+                key={track.position}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 12,
+                  padding: "9px 0",
+                  borderBottom: "1px solid oklch(0.3 0.01 66 / 0.35)",
+                }}
+              >
+                <span
+                  style={{
+                    flex: "0 0 auto",
+                    width: 22,
+                    textAlign: "right",
+                    fontSize: 11,
+                    fontVariantNumeric: "tabular-nums",
+                    color: "var(--ink-faint)",
+                  }}
+                >
+                  {track.position + 1}
+                </span>
+                <span style={{ flex: "1 1 auto", minWidth: 0 }}>
+                  <span
+                    style={{
+                      display: "block",
+                      fontSize: 13.5,
+                      fontWeight: 500,
+                      color: "var(--ink)",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    {track.title}
+                  </span>
+                  {track.artist && (
+                    <span
+                      style={{
+                        display: "block",
+                        marginTop: 1,
+                        fontSize: 11.5,
+                        color: "var(--ink-dim)",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {track.artist}
+                    </span>
+                  )}
+                </span>
+                {/* YouTube's playlistItems carries no duration, so the column
+                    is simply absent there rather than showing a dash. */}
+                {track.durationMs != null && (
+                  <span
+                    style={{
+                      flex: "0 0 auto",
+                      fontSize: 11.5,
+                      fontVariantNumeric: "tabular-nums",
+                      color: "var(--ink-faint)",
+                    }}
+                  >
+                    {formatDuration(track.durationMs)}
+                  </span>
+                )}
+              </li>
+            ))}
+
+            {/* The page carries at most PUBLIC_TRACK_LIMIT songs, so a longer
+                playlist says so instead of appearing to end early. */}
+            {item.trackCount != null && item.trackCount > tracks.length && (
+              <li
+                style={{
+                  padding: "12px 4px 0",
+                  fontSize: 11.5,
+                  textAlign: "center",
+                  color: "var(--ink-faint)",
+                }}
+              >
+                Showing {tracks.length} of {item.trackCount}.{" "}
+                <a
+                  href={item.externalUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{ color: "var(--accent)", fontWeight: 600 }}
+                >
+                  See them all
+                </a>
+              </li>
+            )}
+          </ol>
         )}
       </div>
     </div>

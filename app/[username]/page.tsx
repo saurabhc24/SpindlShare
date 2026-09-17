@@ -103,6 +103,7 @@ export default async function PublicProfilePage(
     trackCount: playlist.trackCount,
     externalUrl: playlist.externalUrl,
     externalId: playlist.externalId,
+    tracks: playlist.tracks,
   }));
 
   if (items.length > 0) {

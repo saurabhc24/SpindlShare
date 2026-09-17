@@ -5,6 +5,7 @@ import {
   ProviderRateLimitError,
   parseRetryAfter,
   type NormalizedPlaylist,
+  type NormalizedTrack,
   type OAuthTokens,
   type ProviderClient,
 } from "./types";
@@ -19,6 +20,11 @@ const SCOPES = ["playlist-read-private", "playlist-read-collaborative"];
 // Guard against a pathological pagination loop; 50 pages x 50 items is far more
 // playlists than any real account has.
 const MAX_PAGES = 50;
+
+// Tracks are stored, so a very long playlist is capped rather than paged
+// forever: 10 x 100 covers all but the most extreme, at ten requests worst case.
+const TRACK_PAGE_SIZE = 100;
+const MAX_TRACK_PAGES = 10;
 
 function config() {
   const clientId = process.env.SPOTIFY_CLIENT_ID;
@@ -61,6 +67,16 @@ function toTokens(payload: {
     scope: payload.scope ?? null,
   };
 }
+
+type SpotifyTrackItem = {
+  track: {
+    name: string | null;
+    duration_ms: number | null;
+    artists: { name: string }[] | null;
+    // An episode or a removed track comes back with a different shape or null.
+    type?: string;
+  } | null;
+};
 
 type SpotifyPlaylistItem = {
   id: string;
@@ -205,5 +221,63 @@ export const spotify: ProviderClient = {
     }
 
     return playlists;
+  },
+
+  async fetchTracks(accessToken: string, externalId: string) {
+    if (!/^[A-Za-z0-9]{16,40}$/.test(externalId)) return [];
+
+    const tracks: NormalizedTrack[] = [];
+    // `fields` keeps the response to what is stored; a playlist page is
+    // otherwise tens of kilobytes of album and image data that is thrown away.
+    const fields = "next,items(track(name,duration_ms,type,artists(name)))";
+    let url: string | null =
+      `${API_BASE}/playlists/${externalId}/tracks` +
+      `?limit=${TRACK_PAGE_SIZE}&fields=${encodeURIComponent(fields)}`;
+    let page = 0;
+
+    while (url && page < MAX_TRACK_PAGES) {
+      const response: Response = await fetch(url, {
+        headers: { Authorization: `Bearer ${accessToken}` },
+        cache: "no-store",
+      });
+
+      if (response.status === 401) {
+        throw new ProviderAuthError("Spotify access token expired.", 401);
+      }
+      if (response.status === 429) {
+        throw new ProviderRateLimitError(
+          "Spotify is rate-limiting requests. Please try again shortly.",
+          parseRetryAfter(response.headers.get("retry-after"))
+        );
+      }
+      // A playlist can vanish or turn private between listing and reading it.
+      // That is one playlist's tracks missing, not a broken sync, so it returns
+      // what it has rather than failing the whole run.
+      if (!response.ok) return tracks;
+
+      const data: { items: SpotifyTrackItem[] | null; next: string | null } =
+        await response.json();
+
+      for (const entry of data.items ?? []) {
+        const track = entry?.track;
+        // Podcast episodes share the endpoint; local files come back nameless.
+        if (!track?.name || (track.type && track.type !== "track")) continue;
+        const artist = (track.artists ?? [])
+          .map((a) => a?.name)
+          .filter(Boolean)
+          .join(", ");
+        tracks.push({
+          position: tracks.length,
+          title: track.name,
+          artist: artist || null,
+          durationMs: track.duration_ms ?? null,
+        });
+      }
+
+      url = data.next;
+      page++;
+    }
+
+    return tracks;
   },
 };

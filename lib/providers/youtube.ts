@@ -5,6 +5,7 @@ import {
   ProviderRateLimitError,
   parseRetryAfter,
   type NormalizedPlaylist,
+  type NormalizedTrack,
   type OAuthTokens,
   type ProviderClient,
 } from "./types";
@@ -19,6 +20,10 @@ const API_BASE = "https://www.googleapis.com/youtube/v3";
 const SCOPES = ["https://www.googleapis.com/auth/youtube.readonly"];
 
 const MAX_PAGES = 50;
+
+// Each page costs one quota unit, and the daily allowance is shared by every
+// user of the app, so a long playlist is capped rather than paged to the end.
+const MAX_TRACK_PAGES = 4;
 
 function config() {
   // Deliberately the same Google OAuth client as app login, with a different
@@ -58,6 +63,16 @@ function toTokens(payload: {
     scope: payload.scope ?? null,
   };
 }
+
+type YouTubePlaylistEntry = {
+  snippet?: {
+    title?: string;
+    videoOwnerChannelTitle?: string;
+    channelTitle?: string;
+    // "Private video" and "Deleted video" keep a slot but carry no real title.
+    resourceId?: { videoId?: string };
+  };
+};
 
 type YouTubePlaylistItem = {
   id: string;
@@ -215,5 +230,74 @@ export const youtube: ProviderClient = {
     } while (pageToken && page < MAX_PAGES);
 
     return playlists;
+  },
+
+  async fetchTracks(accessToken: string, externalId: string) {
+    if (!/^[A-Za-z0-9_-]{12,64}$/.test(externalId)) return [];
+
+    const tracks: NormalizedTrack[] = [];
+    let pageToken: string | undefined;
+    let page = 0;
+
+    do {
+      const params = new URLSearchParams({
+        part: "snippet",
+        playlistId: externalId,
+        maxResults: "50",
+      });
+      if (pageToken) params.set("pageToken", pageToken);
+
+      const response = await fetch(`${API_BASE}/playlistItems?${params}`, {
+        headers: { Authorization: `Bearer ${accessToken}` },
+        cache: "no-store",
+      });
+
+      if (response.status === 401) {
+        throw new ProviderAuthError("YouTube access token expired.", 401);
+      }
+      if (response.status === 429 || response.status === 403) {
+        const body = await response.text();
+        // Quota exhaustion must stop the run; a plain permission denial on one
+        // playlist must not, so it returns what it has.
+        if (response.status === 429 || /quota|rateLimit/i.test(body)) {
+          throw new ProviderRateLimitError(
+            "YouTube's daily quota is exhausted. Please try again later.",
+            parseRetryAfter(response.headers.get("retry-after"))
+          );
+        }
+        return tracks;
+      }
+      // A playlist can turn private or vanish between listing and reading it.
+      if (!response.ok) return tracks;
+
+      const data: {
+        items?: YouTubePlaylistEntry[];
+        nextPageToken?: string;
+      } = await response.json();
+
+      for (const entry of data.items ?? []) {
+        const title = entry?.snippet?.title;
+        // A removed video keeps its slot under a placeholder title and has no
+        // id; storing those would pad the list with rows nobody can play.
+        if (!title || !entry.snippet?.resourceId?.videoId) continue;
+        if (title === "Private video" || title === "Deleted video") continue;
+        tracks.push({
+          position: tracks.length,
+          title,
+          artist:
+            entry.snippet.videoOwnerChannelTitle ||
+            entry.snippet.channelTitle ||
+            null,
+          // playlistItems does not carry duration; it would need a second
+          // request per 50 videos, which the shared daily quota cannot spare.
+          durationMs: null,
+        });
+      }
+
+      pageToken = data.nextPageToken;
+      page++;
+    } while (pageToken && page < MAX_TRACK_PAGES);
+
+    return tracks;
   },
 };

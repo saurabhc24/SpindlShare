@@ -9,6 +9,9 @@ import { normalizeUsername } from "@/lib/username";
  *
  * The profile lookup is a single indexed hit on Profile.usernameNormalized.
  */
+/** Songs sent to the public page per playlist. Beyond this it links out. */
+export const PUBLIC_TRACK_LIMIT = 100;
+
 export const getPublicProfile = cache(async (username: string) => {
   const normalized = normalizeUsername(username);
 
@@ -37,6 +40,16 @@ export const getPublicProfile = cache(async (username: string) => {
   const playlists = await prisma.playlist.findMany({
     where: { userId: profile.userId, visible: true },
     orderBy: { sortOrder: "asc" },
+    // Songs ride along with the page: a visitor holds no provider token, so
+    // this is the only place the list can come from. Capped because every
+    // track is serialised into the HTML of a page that may show many playlists.
+    include: {
+      tracks: {
+        orderBy: { position: "asc" },
+        take: PUBLIC_TRACK_LIMIT,
+        select: { position: true, title: true, artist: true, durationMs: true },
+      },
+    },
   });
 
   return { profile, playlists };

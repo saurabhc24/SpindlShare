@@ -8,6 +8,14 @@ import type { MusicProvider } from "@/app/generated/prisma/enums";
  * importing each other -- it used to live beside the player-importing showcase,
  * which made that import cycle back on itself.
  */
+/** One song, as the public page shows it. */
+export type ShowcaseTrack = {
+  position: number;
+  title: string;
+  artist: string | null;
+  durationMs: number | null;
+};
+
 export type ShowcaseItem = {
   id: string;
   title: string;
@@ -18,4 +26,6 @@ export type ShowcaseItem = {
   externalUrl: string;
   /** Needed to build the embed URL; never rendered. */
   externalId: string;
+  /** Captured at the owner's last sync. Empty when none have been stored yet. */
+  tracks: ShowcaseTrack[];
 };

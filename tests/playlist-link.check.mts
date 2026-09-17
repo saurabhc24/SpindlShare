@@ -207,8 +207,8 @@ check(
   youtubeEmbed?.aspectRatio === "16 / 9"
 );
 check(
-  "Spotify keeps a fixed height, being a list rather than a picture",
-  spotifyEmbed?.aspectRatio === null && spotifyEmbed?.height === 352
+  "Spotify asks for the compact bar, since we list the songs ourselves",
+  spotifyEmbed?.aspectRatio === null && spotifyEmbed?.height === 80
 );
 
 check(

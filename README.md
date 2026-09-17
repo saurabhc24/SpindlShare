@@ -280,8 +280,8 @@ username after 30 days and walk the count backwards.
 
 Playlists are a deck of covers receding up and to the right, scrolled through
 rather than scrolled past. Three states, one click apart: stacked, lifted (title,
-service and track count), then the provider's player. Clicking off a lifted card
-returns it to the stack.
+service and track count), then the provider's player over the playlist's songs.
+Clicking off a lifted card returns it to the stack.
 
 The scroll is driven from wheel and touch rather than a scrollbar, because a
 scrollbar needs a tall spacer to scroll against and can still hit its end; the
@@ -354,6 +354,27 @@ and gave playlists created seconds apart the same colour.
 Labels are pinned to each card's top-right corner: that corner is the strip a
 card still shows past the one in front of it, and anchoring right means the title
 does not slide as a card advances to the front.
+
+The open playlist is a modal over the whole page, so it stacks above the profile
+chrome rather than under it. At its old z-index the header, bio and footer -- all
+at 2000 and deliberately `pointer-events: none` so the deck stays draggable --
+printed straight through it. Hit-testing could not see that: those strips pass
+clicks through while still painting, so only a screenshot showed it.
+
+Songs are stored, not fetched when the page is viewed. A visitor holds no Spotify
+or YouTube token, so the owner's sync is the only moment the list can be read.
+They are fetched only for playlists that are actually visible: new imports start
+hidden, and YouTube's daily quota is shared by every user of the app, so paying
+for a list nobody can reach is quota spent on nothing. The list is replaced
+wholesale on each sync -- position is the identity, so a reordered playlist would
+otherwise keep rows from its previous shape.
+
+Spotify picks its player's layout from the height it is given: 80 draws the
+compact transport bar, 152 and 352 both draw a track list of their own. Since the
+songs are listed beneath it from our own data, anything taller renders that list
+twice. YouTube carries no duration on the endpoint that lists a playlist's items
+-- a second request per 50 videos -- so those rows simply have no duration column
+rather than a row of dashes.
 
 Two things about the embedded player are load-bearing for the back button. The
 fallback iframe is attached blank and then navigated with `location.replace`,
