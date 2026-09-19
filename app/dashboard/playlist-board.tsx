@@ -4,6 +4,7 @@ import {
   useEffect,
   useRef,
   useState,
+  useSyncExternalStore,
   type PointerEvent as ReactPointerEvent,
 } from "react";
 import {
@@ -40,6 +41,58 @@ export type PlaylistRow = {
 /** The service whose first import failed, so the error can offer a way out. */
 export type RetryProvider = { slug: string; label: string };
 
+/** A connected service, and when its playlists were last read. */
+export type Connection = {
+  slug: string;
+  label: string;
+  lastSyncedAt: string | null;
+};
+
+/**
+ * When the services were last read, phrased for a person. Shows the oldest of
+ * them, since that is the one whose songs are furthest out of date.
+ *
+ * Takes `now` rather than reading the clock: this renders on the server and
+ * again on the client, and the two would not agree, which React reports as a
+ * hydration mismatch.
+ */
+function lastSyncedNote(
+  connections: Connection[],
+  /** Minutes since the epoch, or null on the server. */
+  minute: number | null
+): string {
+  const times = connections
+    .map((c) =>
+      c.lastSyncedAt ? Math.floor(new Date(c.lastSyncedAt).getTime() / 60_000) : null
+    )
+    .filter((t): t is number => t !== null && !Number.isNaN(t));
+  // Null until the client has mounted, so both passes render the same words.
+  if (minute === null || times.length === 0) {
+    return "Brings in new songs and playlists.";
+  }
+
+  const minutes = minute - Math.min(...times);
+  if (minutes < 2) return "Last synced just now.";
+  if (minutes < 60) return `Last synced ${minutes} minutes ago.`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `Last synced ${hours} ${hours === 1 ? "hour" : "hours"} ago.`;
+  const days = Math.floor(hours / 24);
+  return `Last synced ${days} ${days === 1 ? "day" : "days"} ago.`;
+}
+
+/**
+ * The current minute, as an external store. Bucketed so successive snapshots
+ * compare equal -- returning Date.now() raw would give React a new value every
+ * read and loop forever. The server snapshot is null, so the first paint and
+ * the hydration agree and only the client ever shows a relative time.
+ */
+const subscribeMinute = (onChange: () => void) => {
+  const id = setInterval(onChange, 60_000);
+  return () => clearInterval(id);
+};
+const minuteNow = () => Math.floor(Date.now() / 60_000);
+const minuteOnServer = (): number | null => null;
+
 const WRITE_DEBOUNCE_MS = 400;
 /** How long the handle is held before the card reads as picked up. */
 const HOLD_MS = 400;
@@ -55,8 +108,11 @@ export function PlaylistBoard({
   initial,
   connectError,
   retryProvider,
+  connections,
 }: {
   initial: PlaylistRow[];
+  /** Connected services, each with its own Sync control. */
+  connections: Connection[];
   /** An OAuth round trip can land back here; this screen has the only slot for it. */
   connectError?: string | null;
   retryProvider?: RetryProvider | null;
@@ -67,6 +123,15 @@ export function PlaylistBoard({
   const [lastInitial, setLastInitial] = useState(initial);
   const [error, setError] = useState<string | null>(null);
   const [retrying, setRetrying] = useState(false);
+  /** The service currently syncing, and what the last finished sync reported. */
+  const [syncing, setSyncing] = useState<string | null>(null);
+  const [syncNote, setSyncNote] = useState<string | null>(null);
+  // The clock, read by the store rather than during render: see lastSyncedNote.
+  const minute = useSyncExternalStore(
+    subscribeMinute,
+    minuteNow,
+    minuteOnServer
+  );
 
   // Adding a link revalidates on the server, so the new list arrives as a fresh
   // `initial`. Adjusted during render rather than in an effect, which would
@@ -172,6 +237,37 @@ export function PlaylistBoard({
     }
   }
 
+  // The same endpoint as the retry above, but asked for deliberately rather
+  // than after a failure -- so it reports what it found instead of reloading.
+  async function syncNow(slug: string, label: string) {
+    setSyncing(slug);
+    setError(null);
+    setSyncNote(null);
+    try {
+      const response = await fetch(`/api/sync/${slug}`, { method: "POST" });
+      const data = await response.json().catch(() => null);
+      if (!response.ok) {
+        setError(data?.error ?? `Couldn't sync ${label}. Please try again.`);
+        return;
+      }
+      // Said in terms of what changed, because "Synced" leaves you wondering
+      // whether it actually did anything.
+      const songs = data?.tracksStored ?? 0;
+      const added = data?.added ?? 0;
+      setSyncNote(
+        `${label}: ${data?.imported ?? 0} playlists` +
+          (added > 0 ? `, ${added} new` : "") +
+          `, ${songs} ${songs === 1 ? "song" : "songs"}.`
+      );
+      // The songs and any new playlists only appear on a fresh render.
+      setTimeout(() => window.location.reload(), 1200);
+    } catch {
+      setError("Couldn't reach the service. Please try again.");
+    } finally {
+      setSyncing(null);
+    }
+  }
+
   // Held long enough, or already moving -- whichever comes first picks it up.
   const liftedId = draggingId ?? heldId;
   const chosen = rows.filter((r) => r.visible).length;
@@ -187,6 +283,31 @@ export function PlaylistBoard({
       </div>
 
       <PasteLinkForm />
+
+      {/* Re-reads a connected service. Imports otherwise only run at connect
+          time, so without this a playlist's new songs never arrive. */}
+      {connections.length > 0 && (
+        <div className="flex w-full flex-col gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            {connections.map((connection) => (
+              <button
+                key={connection.slug}
+                type="button"
+                onClick={() => syncNow(connection.slug, connection.label)}
+                disabled={syncing !== null}
+                className="btn-ghost !px-4 !py-2 !text-xs"
+              >
+                {syncing === connection.slug
+                  ? `Syncing ${connection.label}...`
+                  : `Sync ${connection.label}`}
+              </button>
+            ))}
+          </div>
+          <p className="text-xs text-[#68625a]">
+            {syncNote ?? lastSyncedNote(connections, minute)}
+          </p>
+        </div>
+      )}
 
       {(error || connectError) && (
         <div role="alert" className="note note-error w-full">

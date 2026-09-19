@@ -50,7 +50,7 @@ export async function POST(
     });
 
     revalidatePath(`/${profile.username}`);
-    revalidatePath("/dashboard/playlists");
+    revalidatePath("/dashboard");
 
     return NextResponse.json({ ok: true, ...result });
   } catch (error) {

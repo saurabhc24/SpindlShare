@@ -133,7 +133,7 @@ export async function addPlaylistLink(
   }
 
   revalidatePath(`/${profile.usernameNormalized}`);
-  revalidatePath("/dashboard/playlists");
+  revalidatePath("/dashboard");
 
   return { success: `Added "${resolved.title}".` };
 }
@@ -160,7 +160,7 @@ export async function removePlaylistLink(formData: FormData): Promise<void> {
   });
 
   revalidatePath(`/${profile.usernameNormalized}`);
-  revalidatePath("/dashboard/playlists");
+  revalidatePath("/dashboard");
 }
 
 function isUniqueConstraintError(error: unknown): boolean {

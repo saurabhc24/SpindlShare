@@ -100,6 +100,11 @@ proxy.ts                          optimistic auth gate (Next 16's renamed middle
   deleted, so a curated order never silently changes.
 - **New imports default to hidden**, so connecting an account doesn't dump a
   hundred playlists onto your public page.
+- **Sync is a button, not a schedule.** It used to run only at connect time,
+  which meant a playlist's new songs never arrived and the stored track lists
+  stayed empty after the feature shipped. The Playlists page now has one control
+  per connected service, and it reports what came back rather than just
+  "Synced" -- "5 playlists, 1 new, 212 songs".
 - **Tokens are encrypted at rest** (AES-256-GCM) rather than stored in plaintext.
 - **`@prisma/adapter-pg` over the Neon serverless driver**, so the same code path
   works against local Postgres and Neon.
