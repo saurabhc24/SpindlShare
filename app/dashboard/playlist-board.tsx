@@ -123,8 +123,8 @@ export function PlaylistBoard({
   const [lastInitial, setLastInitial] = useState(initial);
   const [error, setError] = useState<string | null>(null);
   const [retrying, setRetrying] = useState(false);
-  /** The service currently syncing, and what the last finished sync reported. */
-  const [syncing, setSyncing] = useState<string | null>(null);
+  /** Whether a sync is running, and what the last finished one reported. */
+  const [syncing, setSyncing] = useState(false);
   const [syncNote, setSyncNote] = useState<string | null>(null);
   // The clock, read by the store rather than during render: see lastSyncedNote.
   const minute = useSyncExternalStore(
@@ -239,33 +239,57 @@ export function PlaylistBoard({
 
   // The same endpoint as the retry above, but asked for deliberately rather
   // than after a failure -- so it reports what it found instead of reloading.
-  async function syncNow(slug: string, label: string) {
-    setSyncing(slug);
+  //
+  // Every connected service in one press: the control is a single icon, and
+  // "refresh my playlists" is the thing being asked for, not "refresh Spotify".
+  async function syncNow() {
+    if (syncing || connections.length === 0) return;
+    setSyncing(true);
     setError(null);
     setSyncNote(null);
-    try {
-      const response = await fetch(`/api/sync/${slug}`, { method: "POST" });
-      const data = await response.json().catch(() => null);
-      if (!response.ok) {
-        setError(data?.error ?? `Couldn't sync ${label}. Please try again.`);
-        return;
+
+    let imported = 0;
+    let added = 0;
+    let songs = 0;
+    let failure: string | null = null;
+
+    // Sequential, not parallel: both providers rate-limit per application, so
+    // firing them together is the one pattern most likely to trip that.
+    for (const connection of connections) {
+      try {
+        const response = await fetch(`/api/sync/${connection.slug}`, {
+          method: "POST",
+        });
+        const data = await response.json().catch(() => null);
+        if (!response.ok) {
+          failure =
+            data?.error ?? `Couldn't sync ${connection.label}. Please try again.`;
+          break;
+        }
+        imported += data?.imported ?? 0;
+        added += data?.added ?? 0;
+        songs += data?.tracksStored ?? 0;
+      } catch {
+        failure = "Couldn't reach the service. Please try again.";
+        break;
       }
-      // Said in terms of what changed, because "Synced" leaves you wondering
-      // whether it actually did anything.
-      const songs = data?.tracksStored ?? 0;
-      const added = data?.added ?? 0;
-      setSyncNote(
-        `${label}: ${data?.imported ?? 0} playlists` +
-          (added > 0 ? `, ${added} new` : "") +
-          `, ${songs} ${songs === 1 ? "song" : "songs"}.`
-      );
-      // The songs and any new playlists only appear on a fresh render.
-      setTimeout(() => window.location.reload(), 1200);
-    } catch {
-      setError("Couldn't reach the service. Please try again.");
-    } finally {
-      setSyncing(null);
     }
+
+    setSyncing(false);
+    if (failure) {
+      setError(failure);
+      return;
+    }
+
+    // Said in terms of what changed, because "Synced" leaves you wondering
+    // whether it actually did anything.
+    setSyncNote(
+      `${imported} ${imported === 1 ? "playlist" : "playlists"}` +
+        (added > 0 ? `, ${added} new` : "") +
+        `, ${songs} ${songs === 1 ? "song" : "songs"}.`
+    );
+    // The songs and any new playlists only appear on a fresh render.
+    setTimeout(() => window.location.reload(), 1200);
   }
 
   // Held long enough, or already moving -- whichever comes first picks it up.
@@ -283,31 +307,6 @@ export function PlaylistBoard({
       </div>
 
       <PasteLinkForm />
-
-      {/* Re-reads a connected service. Imports otherwise only run at connect
-          time, so without this a playlist's new songs never arrive. */}
-      {connections.length > 0 && (
-        <div className="flex w-full flex-col gap-2">
-          <div className="flex flex-wrap items-center gap-2">
-            {connections.map((connection) => (
-              <button
-                key={connection.slug}
-                type="button"
-                onClick={() => syncNow(connection.slug, connection.label)}
-                disabled={syncing !== null}
-                className="btn-ghost !px-4 !py-2 !text-xs"
-              >
-                {syncing === connection.slug
-                  ? `Syncing ${connection.label}...`
-                  : `Sync ${connection.label}`}
-              </button>
-            ))}
-          </div>
-          <p className="text-xs text-[#68625a]">
-            {syncNote ?? lastSyncedNote(connections, minute)}
-          </p>
-        </div>
-      )}
 
       {(error || connectError) && (
         <div role="alert" className="note note-error w-full">
@@ -336,9 +335,47 @@ export function PlaylistBoard({
         </div>
       )}
       <div className="flex w-full flex-col items-center gap-4">
-        <p className="w-full text-sm font-extrabold text-white">
-          Chosen {chosen} out of {rows.length}
-        </p>
+        <div className="flex w-full items-center justify-between gap-3">
+          <p className="text-sm font-extrabold text-white">
+            Chosen {chosen} out of {rows.length}
+          </p>
+
+          {/* Re-reads every connected service. Imports otherwise only run at
+              connect time, so without this a playlist's new songs never arrive. */}
+          {connections.length > 0 && (
+            <button
+              type="button"
+              onClick={syncNow}
+              disabled={syncing}
+              aria-label={syncing ? "Syncing playlists" : "Sync playlists"}
+              className="flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-full transition-colors hover:bg-white/10 disabled:cursor-not-allowed"
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="/Reload_icon.svg"
+                alt=""
+                width={17}
+                height={17}
+                className={syncing ? "sync-spin" : undefined}
+              />
+            </button>
+          )}
+        </div>
+
+        {/* What the last sync found, or when one last ran. The relative time is
+            client-only by design, so the two passes differ here and React is
+            told not to report it. */}
+        {connections.length > 0 && (
+          <p
+            aria-live="polite"
+            suppressHydrationWarning
+            className="w-full text-xs text-[#68625a]"
+          >
+            {syncing
+              ? "Syncing..."
+              : (syncNote ?? lastSyncedNote(connections, minute))}
+          </p>
+        )}
 
         <DndContext
           sensors={sensors}

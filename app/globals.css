@@ -634,3 +634,17 @@ body {
     translate: none !important;
   }
 }
+
+/* The sync icon while a sync is in flight. Reuses shelfSpin rather than
+   declaring a second identical rotation. */
+.sync-spin {
+  animation: shelfSpin 0.9s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* Still turns, just slowly: the spin is the only signal that work is
+     happening, so stopping it entirely would leave the press unacknowledged. */
+  .sync-spin {
+    animation-duration: 2.4s;
+  }
+}
