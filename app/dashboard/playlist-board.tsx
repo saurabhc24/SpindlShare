@@ -29,6 +29,7 @@ import { CSS } from "@dnd-kit/utilities";
 import type { MusicProvider } from "@/app/generated/prisma/enums";
 
 import { PasteLinkForm } from "./paste-link-form";
+import { refreshPlaylistLinks } from "./playlists/actions";
 
 export type PlaylistRow = {
   id: string;
@@ -36,51 +37,41 @@ export type PlaylistRow = {
   provider: MusicProvider;
   coverImageUrl: string | null;
   visible: boolean;
+  /** When this playlist was last re-read, as an ISO string. */
+  lastSyncedAt: string | null;
 };
 
 /** The service whose first import failed, so the error can offer a way out. */
 export type RetryProvider = { slug: string; label: string };
 
-/** A connected service, and when its playlists were last read. */
-export type Connection = {
-  slug: string;
-  label: string;
-  lastSyncedAt: string | null;
-};
-
 /**
- * When the services were last read, phrased for a person. Shows the oldest of
- * them, since that is the one whose songs are furthest out of date.
+ * When the playlists were last re-read, phrased for a person. Shows the oldest,
+ * since that is the one furthest out of date.
  *
- * Takes `now` rather than reading the clock: this renders on the server and
+ * Takes `minute` rather than reading the clock: this renders on the server and
  * again on the client, and the two would not agree, which React reports as a
  * hydration mismatch.
  */
 function lastSyncedNote(
-  connections: Connection[],
+  stamps: (string | null)[],
   /** Minutes since the epoch, or null on the server. */
   minute: number | null
 ): string {
-  const times = connections
-    .map((c) =>
-      c.lastSyncedAt ? Math.floor(new Date(c.lastSyncedAt).getTime() / 60_000) : null
-    )
+  const times = stamps
+    .map((t) => (t ? Math.floor(new Date(t).getTime() / 60_000) : null))
     .filter((t): t is number => t !== null && !Number.isNaN(t));
   // Null until the client has mounted, so both passes render the same words.
-  if (connections.length === 0) {
-    return "Connect a service to bring in songs and new playlists.";
-  }
   if (minute === null || times.length === 0) {
-    return "Brings in new songs and playlists.";
+    return "Re-reads each playlist's name and cover art.";
   }
 
   const minutes = minute - Math.min(...times);
-  if (minutes < 2) return "Last synced just now.";
-  if (minutes < 60) return `Last synced ${minutes} minutes ago.`;
+  if (minutes < 2) return "Last refreshed just now.";
+  if (minutes < 60) return `Last refreshed ${minutes} minutes ago.`;
   const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `Last synced ${hours} ${hours === 1 ? "hour" : "hours"} ago.`;
+  if (hours < 24) return `Last refreshed ${hours} ${hours === 1 ? "hour" : "hours"} ago.`;
   const days = Math.floor(hours / 24);
-  return `Last synced ${days} ${days === 1 ? "day" : "days"} ago.`;
+  return `Last refreshed ${days} ${days === 1 ? "day" : "days"} ago.`;
 }
 
 /**
@@ -111,11 +102,8 @@ export function PlaylistBoard({
   initial,
   connectError,
   retryProvider,
-  connections,
 }: {
   initial: PlaylistRow[];
-  /** Connected services, each with its own Sync control. */
-  connections: Connection[];
   /** An OAuth round trip can land back here; this screen has the only slot for it. */
   connectError?: string | null;
   retryProvider?: RetryProvider | null;
@@ -245,62 +233,46 @@ export function PlaylistBoard({
   //
   // Every connected service in one press: the control is a single icon, and
   // "refresh my playlists" is the thing being asked for, not "refresh Spotify".
+  // Re-reads every playlist the same way pasting its link does: the provider's
+  // own oEmbed lookup, writing back a changed name or cover. It cannot bring in
+  // songs -- oEmbed publishes neither, and a pasted link has no token to ask with.
   async function syncNow() {
     if (syncing) return;
-    // Pasted links belong to no connected account, so there is no token to read
-    // their songs with. Connecting is the only thing that helps -- say so.
-    if (connections.length === 0) {
-      setError(
-        "Connect Spotify or YouTube to refresh playlists. Links added by pasting can't be re-read on their own."
-      );
-      return;
-    }
     setSyncing(true);
     setError(null);
     setSyncNote(null);
 
-    let imported = 0;
-    let added = 0;
-    let songs = 0;
-    let failure: string | null = null;
-
-    // Sequential, not parallel: both providers rate-limit per application, so
-    // firing them together is the one pattern most likely to trip that.
-    for (const connection of connections) {
-      try {
-        const response = await fetch(`/api/sync/${connection.slug}`, {
-          method: "POST",
-        });
-        const data = await response.json().catch(() => null);
-        if (!response.ok) {
-          failure =
-            data?.error ?? `Couldn't sync ${connection.label}. Please try again.`;
-          break;
-        }
-        imported += data?.imported ?? 0;
-        added += data?.added ?? 0;
-        songs += data?.tracksStored ?? 0;
-      } catch {
-        failure = "Couldn't reach the service. Please try again.";
-        break;
+    try {
+      const result = await refreshPlaylistLinks();
+      if (result.error) {
+        setError(result.error);
+        return;
       }
-    }
 
-    setSyncing(false);
-    if (failure) {
-      setError(failure);
-      return;
-    }
+      // Said in terms of what changed, because "Refreshed" leaves you wondering
+      // whether it actually did anything.
+      const parts = [
+        `${result.refreshed} ${result.refreshed === 1 ? "playlist" : "playlists"} checked`,
+      ];
+      parts.push(result.updated > 0 ? `${result.updated} updated` : "nothing changed");
+      setSyncNote(`${parts.join(", ")}.`);
 
-    // Said in terms of what changed, because "Synced" leaves you wondering
-    // whether it actually did anything.
-    setSyncNote(
-      `${imported} ${imported === 1 ? "playlist" : "playlists"}` +
-        (added > 0 ? `, ${added} new` : "") +
-        `, ${songs} ${songs === 1 ? "song" : "songs"}.`
-    );
-    // The songs and any new playlists only appear on a fresh render.
-    setTimeout(() => window.location.reload(), 1200);
+      // Named, not counted: knowing which playlist the service refused is what
+      // tells you whether it went private or was deleted.
+      if (result.failed.length > 0) {
+        setError(
+          `Couldn't re-read ${result.failed.join(", ")}. They may be private or deleted.`
+        );
+      }
+      // A changed name or cover only appears on a fresh render.
+      if (result.updated > 0) {
+        setTimeout(() => window.location.reload(), 1200);
+      }
+    } catch {
+      setError("Couldn't reach the service. Please try again.");
+    } finally {
+      setSyncing(false);
+    }
   }
 
   // Held long enough, or already moving -- whichever comes first picks it up.
@@ -351,14 +323,13 @@ export function PlaylistBoard({
             Chosen {chosen} out of {rows.length}
           </p>
 
-          {/* Always here, so the way to refresh is never hidden. With nothing
-              connected there is no token to read a playlist with, so it says
-              that rather than vanishing and leaving no explanation. */}
+          {/* Re-runs the import for every playlist, as though each link were
+              pasted again. Always here: it is the only refresh there is. */}
           <button
             type="button"
             onClick={syncNow}
             disabled={syncing}
-            aria-label={syncing ? "Syncing playlists" : "Sync playlists"}
+            aria-label={syncing ? "Refreshing playlists" : "Refresh playlists"}
             className="flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-full transition-colors hover:bg-white/10 disabled:cursor-not-allowed"
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -381,8 +352,12 @@ export function PlaylistBoard({
           className="w-full text-xs text-[#68625a]"
         >
           {syncing
-            ? "Syncing..."
-            : (syncNote ?? lastSyncedNote(connections, minute))}
+            ? "Refreshing..."
+            : (syncNote ??
+              lastSyncedNote(
+                rows.map((r) => r.lastSyncedAt),
+                minute
+              ))}
         </p>
 
         <DndContext

@@ -8,11 +8,7 @@ import { providerSlug } from "@/lib/providers";
 import { syncFailureHint } from "@/lib/sync-status";
 
 import { PasteLinkForm } from "./paste-link-form";
-import {
-  PlaylistBoard,
-  type Connection,
-  type PlaylistRow,
-} from "./playlist-board";
+import { PlaylistBoard, type PlaylistRow } from "./playlist-board";
 import { MENU_ITEM_CLASS, SettingsMenu } from "./settings-menu";
 import { WelcomeMoment } from "./welcome-moment";
 
@@ -49,21 +45,23 @@ export default async function DashboardPage(props: PageProps<"/dashboard">) {
     prisma.playlist.findMany({
       where: { userId: user.id },
       orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
-      select: { id: true, title: true, provider: true, coverImageUrl: true, visible: true },
+      select: {
+        id: true,
+        title: true,
+        provider: true,
+        coverImageUrl: true,
+        visible: true,
+        lastSyncedAt: true,
+      },
     }),
   ]);
 
   const connected = new Set(connections.map((row) => row.provider));
-  // Only services with a real client can be re-read; a pasted link belongs to
-  // no connected account, so it has nothing to sync against.
-  const syncable: Connection[] = connections
-    .filter((row) => row.provider === "SPOTIFY" || row.provider === "YOUTUBE")
-    .map((row) => ({
-      slug: providerSlug(row.provider),
-      label: row.provider === "SPOTIFY" ? "Spotify" : "YouTube",
-      // Serialised for the client component; Date does not cross that boundary.
-      lastSyncedAt: row.lastSyncedAt ? row.lastSyncedAt.toISOString() : null,
-    }));
+  // Serialised for the client component; Date does not cross that boundary.
+  const boardRows: PlaylistRow[] = playlists.map((row) => ({
+    ...row,
+    lastSyncedAt: row.lastSyncedAt ? row.lastSyncedAt.toISOString() : null,
+  }));
   // Nothing connected and nothing pasted is the only state with no shelf to
   // manage, so it is the only one that still gets the invitation.
   const isFirstRun = connected.size === 0 && playlists.length === 0;
@@ -204,8 +202,7 @@ export default async function DashboardPage(props: PageProps<"/dashboard">) {
           </main>
         ) : (
           <PlaylistBoard
-            initial={playlists satisfies PlaylistRow[]}
-            connections={syncable}
+            initial={boardRows}
             connectError={errorMessage}
             retryProvider={retryProvider}
           />

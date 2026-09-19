@@ -138,6 +138,100 @@ export async function addPlaylistLink(
   return { success: `Added "${resolved.title}".` };
 }
 
+export type RefreshResult = {
+  /** How many playlists were re-read successfully. */
+  refreshed: number;
+  /** How many changed their title or cover as a result. */
+  updated: number;
+  /** Playlists the service would not describe, by title. */
+  failed: string[];
+};
+
+/**
+ * Re-reads every pasted playlist, exactly as though each link were pasted
+ * again: the same oEmbed lookup, writing back a changed title or cover.
+ *
+ * It cannot bring in songs. oEmbed publishes a title and a thumbnail and
+ * nothing else, and a pasted link carries no account token to ask with -- the
+ * track list needs a connected account, which this deployment has no route to.
+ */
+export async function refreshPlaylistLinks(): Promise<
+  RefreshResult & { error?: string }
+> {
+  const { user, profile } = await requireProfile();
+
+  // One outbound request per playlist, so it sits on the same budget as adding
+  // them: this is the same work, just repeated for rows that already exist.
+  const limited = await rateLimitAll([
+    { key: `curation:user:${user.id}`, rule: RATE_LIMITS.curationPerAccount },
+    { key: `curation:ip:${await clientIpFromHeaders()}`, rule: RATE_LIMITS.curationPerIp },
+  ]);
+  if (!limited.ok) {
+    return {
+      refreshed: 0,
+      updated: 0,
+      failed: [],
+      error: "You're refreshing very quickly. Please wait a moment.",
+    };
+  }
+
+  const playlists = await prisma.playlist.findMany({
+    where: { userId: user.id, connectedAccountId: null },
+    select: {
+      id: true,
+      title: true,
+      coverImageUrl: true,
+      externalUrl: true,
+    },
+  });
+
+  let refreshed = 0;
+  let updated = 0;
+  const failed: string[] = [];
+
+  for (const playlist of playlists) {
+    // Re-parsed from the stored URL rather than trusted: this is the same
+    // validation a pasted link goes through, so a row stored before a rule
+    // tightened cannot slip past it now.
+    const link = parsePlaylistLink(playlist.externalUrl);
+    // A service that publishes nothing has nothing to re-read; the title came
+    // from the user in the first place, so leaving it alone is correct.
+    if (!link || link.needsManualTitle) continue;
+
+    let resolved: { title: string; coverImageUrl: string | null };
+    try {
+      resolved = await resolvePlaylistLink(link);
+    } catch (error) {
+      if (error instanceof PlaylistLinkError) {
+        failed.push(playlist.title);
+        continue;
+      }
+      throw error;
+    }
+
+    refreshed++;
+    const changed =
+      resolved.title !== playlist.title ||
+      (resolved.coverImageUrl ?? null) !== playlist.coverImageUrl;
+    if (!changed) continue;
+
+    await prisma.playlist.update({
+      where: { id: playlist.id },
+      data: {
+        title: resolved.title,
+        coverImageUrl: resolved.coverImageUrl,
+        lastSyncedAt: new Date(),
+      },
+    });
+    updated++;
+  }
+
+  revalidatePath(`/${profile.usernameNormalized}`);
+  revalidatePath("/dashboard");
+
+  return { refreshed, updated, failed };
+}
+
 /**
  * Removes a playlist that was added by link.
  *
