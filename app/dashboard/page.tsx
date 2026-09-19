@@ -45,23 +45,11 @@ export default async function DashboardPage(props: PageProps<"/dashboard">) {
     prisma.playlist.findMany({
       where: { userId: user.id },
       orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
-      select: {
-        id: true,
-        title: true,
-        provider: true,
-        coverImageUrl: true,
-        visible: true,
-        lastSyncedAt: true,
-      },
+      select: { id: true, title: true, provider: true, coverImageUrl: true, visible: true },
     }),
   ]);
 
   const connected = new Set(connections.map((row) => row.provider));
-  // Serialised for the client component; Date does not cross that boundary.
-  const boardRows: PlaylistRow[] = playlists.map((row) => ({
-    ...row,
-    lastSyncedAt: row.lastSyncedAt ? row.lastSyncedAt.toISOString() : null,
-  }));
   // Nothing connected and nothing pasted is the only state with no shelf to
   // manage, so it is the only one that still gets the invitation.
   const isFirstRun = connected.size === 0 && playlists.length === 0;
@@ -202,7 +190,7 @@ export default async function DashboardPage(props: PageProps<"/dashboard">) {
           </main>
         ) : (
           <PlaylistBoard
-            initial={boardRows}
+            initial={playlists satisfies PlaylistRow[]}
             connectError={errorMessage}
             retryProvider={retryProvider}
           />

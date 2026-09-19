@@ -635,6 +635,52 @@ body {
   }
 }
 
+/* The refresh card, which shows itself and then goes. It rises in, holds at
+   full strength long enough to read, then fades rather than being cut. */
+@keyframes noteIn {
+  from {
+    opacity: 0;
+    translate: 0 8px;
+  }
+  to {
+    opacity: 1;
+    translate: 0 0;
+  }
+}
+
+@keyframes noteFade {
+  0% {
+    opacity: 0;
+    translate: 0 8px;
+  }
+  10%,
+  70% {
+    opacity: 1;
+    translate: 0 0;
+  }
+  100% {
+    opacity: 0;
+    translate: 0 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* No travel, but it must still leave on its own. */
+  [role="status"] {
+    animation-name: noteFadeFlat !important;
+  }
+}
+
+@keyframes noteFadeFlat {
+  0%,
+  70% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
 /* The sync icon while a sync is in flight. Reuses shelfSpin rather than
    declaring a second identical rotation. */
 .sync-spin {

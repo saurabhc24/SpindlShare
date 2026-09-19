@@ -105,7 +105,9 @@ proxy.ts                          optimistic auth gate (Next 16's renamed middle
   organisations, so in practice every playlist here arrives as a pasted link.
   The reload icon on the "Chosen" row re-reads each one through the same oEmbed
   lookup pasting uses, writing back a changed name or cover art, and reports
-  what it found -- "5 playlists checked, 1 updated". It cannot bring in songs:
+  what it found -- "5 playlists checked, 1 updated" -- in a card that floats
+  clear of the flow and then takes itself away. Inline, it would have shifted
+  every playlist below it each time it appeared and went. It cannot bring in songs:
   oEmbed publishes a title and a thumbnail and nothing else. The connected-
   account sync path still exists behind `/api/sync` for the day that approval
   comes through; nothing in the UI reaches it.

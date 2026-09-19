@@ -4,7 +4,6 @@ import {
   useEffect,
   useRef,
   useState,
-  useSyncExternalStore,
   type PointerEvent as ReactPointerEvent,
 } from "react";
 import {
@@ -37,55 +36,13 @@ export type PlaylistRow = {
   provider: MusicProvider;
   coverImageUrl: string | null;
   visible: boolean;
-  /** When this playlist was last re-read, as an ISO string. */
-  lastSyncedAt: string | null;
 };
 
 /** The service whose first import failed, so the error can offer a way out. */
 export type RetryProvider = { slug: string; label: string };
 
-/**
- * When the playlists were last re-read, phrased for a person. Shows the oldest,
- * since that is the one furthest out of date.
- *
- * Takes `minute` rather than reading the clock: this renders on the server and
- * again on the client, and the two would not agree, which React reports as a
- * hydration mismatch.
- */
-function lastSyncedNote(
-  stamps: (string | null)[],
-  /** Minutes since the epoch, or null on the server. */
-  minute: number | null
-): string {
-  const times = stamps
-    .map((t) => (t ? Math.floor(new Date(t).getTime() / 60_000) : null))
-    .filter((t): t is number => t !== null && !Number.isNaN(t));
-  // Null until the client has mounted, so both passes render the same words.
-  if (minute === null || times.length === 0) {
-    return "Re-reads each playlist's name and cover art.";
-  }
-
-  const minutes = minute - Math.min(...times);
-  if (minutes < 2) return "Last refreshed just now.";
-  if (minutes < 60) return `Last refreshed ${minutes} minutes ago.`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `Last refreshed ${hours} ${hours === 1 ? "hour" : "hours"} ago.`;
-  const days = Math.floor(hours / 24);
-  return `Last refreshed ${days} ${days === 1 ? "day" : "days"} ago.`;
-}
-
-/**
- * The current minute, as an external store. Bucketed so successive snapshots
- * compare equal -- returning Date.now() raw would give React a new value every
- * read and loop forever. The server snapshot is null, so the first paint and
- * the hydration agree and only the client ever shows a relative time.
- */
-const subscribeMinute = (onChange: () => void) => {
-  const id = setInterval(onChange, 60_000);
-  return () => clearInterval(id);
-};
-const minuteNow = () => Math.floor(Date.now() / 60_000);
-const minuteOnServer = (): number | null => null;
+/** How long the result note stays before fading out. */
+const NOTE_MS = 4000;
 
 const WRITE_DEBOUNCE_MS = 400;
 /** How long the handle is held before the card reads as picked up. */
@@ -117,12 +74,6 @@ export function PlaylistBoard({
   /** Whether a sync is running, and what the last finished one reported. */
   const [syncing, setSyncing] = useState(false);
   const [syncNote, setSyncNote] = useState<string | null>(null);
-  // The clock, read by the store rather than during render: see lastSyncedNote.
-  const minute = useSyncExternalStore(
-    subscribeMinute,
-    minuteNow,
-    minuteOnServer
-  );
 
   // Adding a link revalidates on the server, so the new list arrives as a fresh
   // `initial`. Adjusted during render rather than in an effect, which would
@@ -256,6 +207,9 @@ export function PlaylistBoard({
       ];
       parts.push(result.updated > 0 ? `${result.updated} updated` : "nothing changed");
       setSyncNote(`${parts.join(", ")}.`);
+      // Matches the fade above, so the element leaves once it is invisible
+      // rather than lingering as an empty row.
+      window.setTimeout(() => setSyncNote(null), NOTE_MS);
 
       // Named, not counted: knowing which playlist the service refused is what
       // tells you whether it went private or was deleted.
@@ -343,23 +297,6 @@ export function PlaylistBoard({
           </button>
         </div>
 
-        {/* What the last sync found, or when one last ran. The relative time is
-            client-only by design, so the two passes differ here and React is
-            told not to report it. */}
-        <p
-          aria-live="polite"
-          suppressHydrationWarning
-          className="w-full text-xs text-[#68625a]"
-        >
-          {syncing
-            ? "Refreshing..."
-            : (syncNote ??
-              lastSyncedNote(
-                rows.map((r) => r.lastSyncedAt),
-                minute
-              ))}
-        </p>
-
         <DndContext
           sensors={sensors}
           collisionDetection={closestCenter}
@@ -386,6 +323,33 @@ export function PlaylistBoard({
           </SortableContext>
         </DndContext>
       </div>
+      {/* Floated clear of the flow: an inline line appearing and vanishing
+          would shift every playlist below it each time. Fixed, so it costs no
+          layout at all, and it takes itself away when it is done. */}
+      {(syncing || syncNote) && (
+        <div
+          role="status"
+          aria-live="polite"
+          data-refresh-note
+          className="pointer-events-none fixed inset-x-0 bottom-6 z-50 flex justify-center px-6"
+          style={{ animation: syncing ? "noteIn 0.25s ease-out" : "noteFade 4s ease-in forwards" }}
+        >
+          <span
+            className="flex items-center gap-2 rounded-full px-4 py-2 text-xs font-medium text-white"
+            style={{
+              background: "var(--panel-solid)",
+              border: "1px solid var(--line)",
+              boxShadow: "0 8px 24px rgba(0,0,0,0.5)",
+            }}
+          >
+            {syncing && (
+              /* eslint-disable-next-line @next/next/no-img-element */
+              <img src="/Reload_icon.svg" alt="" width={13} height={13} className="sync-spin" />
+            )}
+            {syncing ? "Refreshing..." : syncNote}
+          </span>
+        </div>
+      )}
     </main>
   );
 }
