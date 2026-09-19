@@ -67,6 +67,9 @@ function lastSyncedNote(
     )
     .filter((t): t is number => t !== null && !Number.isNaN(t));
   // Null until the client has mounted, so both passes render the same words.
+  if (connections.length === 0) {
+    return "Connect a service to bring in songs and new playlists.";
+  }
   if (minute === null || times.length === 0) {
     return "Brings in new songs and playlists.";
   }
@@ -243,7 +246,15 @@ export function PlaylistBoard({
   // Every connected service in one press: the control is a single icon, and
   // "refresh my playlists" is the thing being asked for, not "refresh Spotify".
   async function syncNow() {
-    if (syncing || connections.length === 0) return;
+    if (syncing) return;
+    // Pasted links belong to no connected account, so there is no token to read
+    // their songs with. Connecting is the only thing that helps -- say so.
+    if (connections.length === 0) {
+      setError(
+        "Connect Spotify or YouTube to refresh playlists. Links added by pasting can't be re-read on their own."
+      );
+      return;
+    }
     setSyncing(true);
     setError(null);
     setSyncNote(null);
@@ -340,42 +351,39 @@ export function PlaylistBoard({
             Chosen {chosen} out of {rows.length}
           </p>
 
-          {/* Re-reads every connected service. Imports otherwise only run at
-              connect time, so without this a playlist's new songs never arrive. */}
-          {connections.length > 0 && (
-            <button
-              type="button"
-              onClick={syncNow}
-              disabled={syncing}
-              aria-label={syncing ? "Syncing playlists" : "Sync playlists"}
-              className="flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-full transition-colors hover:bg-white/10 disabled:cursor-not-allowed"
-            >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src="/Reload_icon.svg"
-                alt=""
-                width={17}
-                height={17}
-                className={syncing ? "sync-spin" : undefined}
-              />
-            </button>
-          )}
+          {/* Always here, so the way to refresh is never hidden. With nothing
+              connected there is no token to read a playlist with, so it says
+              that rather than vanishing and leaving no explanation. */}
+          <button
+            type="button"
+            onClick={syncNow}
+            disabled={syncing}
+            aria-label={syncing ? "Syncing playlists" : "Sync playlists"}
+            className="flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-full transition-colors hover:bg-white/10 disabled:cursor-not-allowed"
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/Reload_icon.svg"
+              alt=""
+              width={17}
+              height={17}
+              className={syncing ? "sync-spin" : undefined}
+            />
+          </button>
         </div>
 
         {/* What the last sync found, or when one last ran. The relative time is
             client-only by design, so the two passes differ here and React is
             told not to report it. */}
-        {connections.length > 0 && (
-          <p
-            aria-live="polite"
-            suppressHydrationWarning
-            className="w-full text-xs text-[#68625a]"
-          >
-            {syncing
-              ? "Syncing..."
-              : (syncNote ?? lastSyncedNote(connections, minute))}
-          </p>
-        )}
+        <p
+          aria-live="polite"
+          suppressHydrationWarning
+          className="w-full text-xs text-[#68625a]"
+        >
+          {syncing
+            ? "Syncing..."
+            : (syncNote ?? lastSyncedNote(connections, minute))}
+        </p>
 
         <DndContext
           sensors={sensors}

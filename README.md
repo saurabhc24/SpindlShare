@@ -106,7 +106,9 @@ proxy.ts                          optimistic auth gate (Next 16's renamed middle
   icon on the "Chosen" row that re-reads every connected service, one after the
   other rather than at once -- both providers rate-limit per application. It
   reports what came back rather than just "Synced" -- "5 playlists, 1 new, 212
-  songs" -- and the icon spins while the work is in flight.
+  songs" -- and the icon spins while the work is in flight. It is drawn whether
+  or not anything is connected: hiding it left an account whose playlists were
+  all added by pasting links with no control and no explanation of why.
 - **Tokens are encrypted at rest** (AES-256-GCM) rather than stored in plaintext.
 - **`@prisma/adapter-pg` over the Neon serverless driver**, so the same code path
   works against local Postgres and Neon.
