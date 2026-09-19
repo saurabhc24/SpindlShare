@@ -27,13 +27,15 @@ function formatDuration(ms: number): string {
  * Deck geometry, in one place because every circle below is derived from it.
  *
  * The container is exactly the deck's size: it used to be shorter, so the deck
- * overflowed by ~30px and sat on top of the playlist title. Sizes are modest --
- * an earlier, larger deck left the embed with almost no room on a phone, which
- * is the part people came for.
+ * overflowed by ~30px and sat on top of the playlist title. Kept small on
+ * purpose -- the songs are what this page is for, and at 208 the deck and the
+ * player between them left room for about four rows on a phone.
  */
-const DECK = 208;
+const DECK = 150;
 const VINYL = Math.round(DECK * 0.9);
 const LABEL = Math.round(DECK * 0.37);
+/** The tonearm's pivot. Derived too, or it overhangs a smaller deck. */
+const PIVOT = Math.round(DECK * 0.163);
 
 export function PlayerOverlay({
   item,
@@ -282,8 +284,8 @@ export function PlayerOverlay({
                 position: "absolute",
                 right: 2,
                 top: 2,
-                width: 34,
-                height: 34,
+                width: PIVOT,
+                height: PIVOT,
                 transformOrigin: "82% 18%",
                 transform: `rotate(${playing ? 24 : 2}deg)`,
                 transition: "transform 0.9s cubic-bezier(0.4, 0, 0.2, 1)",
@@ -294,8 +296,8 @@ export function PlayerOverlay({
                   position: "absolute",
                   right: 0,
                   top: 0,
-                  width: 24,
-                  height: 24,
+                  width: Math.round(PIVOT * 0.7),
+                  height: Math.round(PIVOT * 0.7),
                   borderRadius: "50%",
                   background:
                     "radial-gradient(circle at 38% 32%, oklch(0.5 0.008 250), oklch(0.26 0.006 250))",
@@ -306,10 +308,10 @@ export function PlayerOverlay({
               <div
                 style={{
                   position: "absolute",
-                  right: 9,
-                  top: 18,
+                  right: Math.round(PIVOT * 0.26),
+                  top: Math.round(PIVOT * 0.53),
                   width: 5,
-                  height: DECK * 0.5,
+                  height: DECK * 0.46,
                   borderRadius: 4,
                   transform: "rotate(26deg)",
                   transformOrigin: "top center",
@@ -322,9 +324,9 @@ export function PlayerOverlay({
                   style={{
                     position: "absolute",
                     left: -4,
-                    bottom: -7,
-                    width: 12,
-                    height: 17,
+                    bottom: -6,
+                    width: 11,
+                    height: 15,
                     borderRadius: 3,
                     background:
                       "linear-gradient(to bottom, oklch(0.5 0.006 250), oklch(0.3 0.006 250))",
@@ -336,7 +338,7 @@ export function PlayerOverlay({
           </div>
         </div>
 
-        <div style={{ textAlign: "center", marginTop: 10, padding: "0 20px" }}>
+        <div style={{ textAlign: "center", marginTop: 16, padding: "0 20px" }}>
           {item?.trackCount !== null && item?.trackCount !== undefined && (
             <div
               style={{
@@ -363,7 +365,7 @@ export function PlayerOverlay({
           flex: "1 1 auto",
           display: "flex",
           flexDirection: "column",
-          padding: "10px 16px 0",
+          padding: "16px 16px 0",
           minHeight: 0,
         }}
       >
