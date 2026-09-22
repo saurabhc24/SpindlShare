@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { playlistEmbed } from "@/lib/playlist-embed";
 import { isYouTubeMusic } from "@/lib/playlist-link";
@@ -50,9 +50,62 @@ export function PlayerOverlay({
 }) {
   const [playing, setPlaying] = useState(false);
   const hostRef = useRef<HTMLDivElement | null>(null);
-  const embed = item ? playlistEmbed(item.provider, item.externalId) : null;
   const open = Boolean(item);
-  const tracks = item?.tracks ?? [];
+  // Stable across renders, so the play callback is not rebuilt every time.
+  const tracks = useMemo(() => item?.tracks ?? [], [item]);
+
+  // Our own player, where the songs carry previews. The provider's embed only
+  // plays for a visitor with its own session open, which most visitors do not
+  // have -- so on this page it mostly sits there doing nothing.
+  const playable = tracks.some((track) => track.previewUrl);
+  const embed =
+    item && !playable ? playlistEmbed(item.provider, item.externalId) : null;
+
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const [current, setCurrent] = useState<number | null>(null);
+
+  // A preview must never outlive the card that started it. Reset during
+  // render, the way React prescribes for state derived from a prop, and stop
+  // the element itself in an effect, since that is the external system.
+  const [lastItemId, setLastItemId] = useState(item?.id ?? null);
+  if (lastItemId !== (item?.id ?? null)) {
+    setLastItemId(item?.id ?? null);
+    setCurrent(null);
+    setPlaying(false);
+  }
+  useEffect(() => {
+    const audio = audioRef.current;
+    return () => {
+      if (audio) {
+        audio.pause();
+        audio.removeAttribute("src");
+      }
+    };
+  }, [item?.id]);
+
+  const playTrack = useCallback(
+    (position: number) => {
+      const audio = audioRef.current;
+      const track = tracks.find((t) => t.position === position);
+      if (!audio || !track?.previewUrl) return;
+
+      // A second tap on the playing row is a pause, which is what a row that
+      // shows a pause icon has to do.
+      if (current === position && !audio.paused) {
+        audio.pause();
+        return;
+      }
+      if (current !== position) {
+        audio.src = track.previewUrl;
+        setCurrent(position);
+      }
+      // Autoplay can still be refused; the catch keeps the row honest.
+      audio.play().catch(() => {
+        setPlaying(false);
+      });
+    },
+    [current, tracks]
+  );
 
   const handlePlayingChange = useCallback((next: boolean) => {
     setPlaying(next);
@@ -369,6 +422,126 @@ export function PlayerOverlay({
           minHeight: 0,
         }}
       >
+        {/* Ours, where the songs carry previews. Hidden: the rows are the
+            controls, so a second set of transport buttons would be noise. */}
+        {playable && (
+          <audio
+            ref={audioRef}
+            preload="none"
+            onPlay={() => setPlaying(true)}
+            onPause={() => setPlaying(false)}
+            onEnded={() => {
+              // Straight into the next playable song, the way a playlist runs.
+              const next = tracks.find(
+                (t) => t.position > (current ?? -1) && t.previewUrl
+              );
+              if (next) playTrack(next.position);
+              else {
+                setPlaying(false);
+                setCurrent(null);
+              }
+            }}
+          />
+        )}
+
+        {playable && item && (
+          <div
+            style={{
+              flex: "0 0 auto",
+              display: "flex",
+              alignItems: "center",
+              gap: 12,
+              padding: "12px 14px",
+              borderRadius: 14,
+              background: "var(--panel-solid)",
+              border: "1px solid var(--line)",
+            }}
+          >
+            <button
+              type="button"
+              onClick={() => {
+                const first = tracks.find((t) => t.previewUrl);
+                if (current !== null) playTrack(current);
+                else if (first) playTrack(first.position);
+              }}
+              aria-label={playing ? "Pause" : "Play"}
+              style={{
+                flex: "0 0 auto",
+                width: 42,
+                height: 42,
+                borderRadius: "50%",
+                border: "none",
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                background: "var(--gold)",
+                color: "#151210",
+              }}
+            >
+              {playing ? (
+                <svg width="13" height="15" viewBox="0 0 13 15" aria-hidden="true">
+                  <rect x="0" y="0" width="4.5" height="15" rx="1.4" fill="currentColor" />
+                  <rect x="8.5" y="0" width="4.5" height="15" rx="1.4" fill="currentColor" />
+                </svg>
+              ) : (
+                <svg width="13" height="15" viewBox="0 0 13 15" aria-hidden="true">
+                  <path d="M0 1.1v12.8a1.1 1.1 0 0 0 1.7 1l10.8-6.4a1.1 1.1 0 0 0 0-1.9L1.7.1A1.1 1.1 0 0 0 0 1.1Z" fill="currentColor" />
+                </svg>
+              )}
+            </button>
+
+            <span style={{ flex: "1 1 auto", minWidth: 0 }}>
+              <span
+                style={{
+                  display: "block",
+                  fontSize: 13,
+                  fontWeight: 600,
+                  color: "var(--ink)",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {current !== null
+                  ? tracks.find((t) => t.position === current)?.title
+                  : "Tap a song to play"}
+              </span>
+              <span
+                style={{
+                  display: "block",
+                  marginTop: 2,
+                  fontSize: 11,
+                  color: "var(--ink-faint)",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {current !== null
+                  ? tracks.find((t) => t.position === current)?.artist
+                  : "30-second previews"}
+              </span>
+            </span>
+
+            {/* The full track lives at the provider; this is a preview. */}
+            <a
+              href={item.externalUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                flex: "0 0 auto",
+                fontSize: 11,
+                fontWeight: 600,
+                color: "var(--accent)",
+                textDecoration: "none",
+              }}
+            >
+              Full tracks
+            </a>
+          </div>
+        )}
+
         {embed ? (
           <>
             {/* Matching YouTube's own 16:9 removes the bars we were adding
@@ -425,7 +598,8 @@ export function PlayerOverlay({
               </p>
             )}
           </>
-        ) : (
+        ) : playable ? null : (
+          // Nothing to play at all: no embed, and no previews either.
           <div style={{ textAlign: "center", paddingBottom: 8 }}>
             <p
               style={{
@@ -482,28 +656,49 @@ export function PlayerOverlay({
               borderTop: "1px solid var(--line)",
             }}
           >
-            {tracks.map((track) => (
+            {tracks.map((track) => {
+              const isCurrent = current === track.position;
+              const canPlay = Boolean(track.previewUrl);
+              return (
               <li
                 key={track.position}
+                onClick={canPlay ? () => playTrack(track.position) : undefined}
+                aria-current={isCurrent}
                 style={{
                   display: "flex",
                   alignItems: "center",
                   gap: 12,
                   padding: "9px 0",
                   borderBottom: "1px solid oklch(0.3 0.01 66 / 0.35)",
+                  cursor: canPlay ? "pointer" : "default",
                 }}
               >
+                {/* The number doubles as the play control: it turns into a
+                    pause while this row is the one making sound. */}
                 <span
                   style={{
                     flex: "0 0 auto",
                     width: 22,
-                    textAlign: "right",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "flex-end",
                     fontSize: 11,
                     fontVariantNumeric: "tabular-nums",
-                    color: "var(--ink-faint)",
+                    color: isCurrent ? "var(--accent)" : "var(--ink-faint)",
                   }}
                 >
-                  {track.position + 1}
+                  {isCurrent && playing ? (
+                    <svg width="9" height="11" viewBox="0 0 9 11" aria-hidden="true">
+                      <rect x="0" y="0" width="3" height="11" rx="1" fill="currentColor" />
+                      <rect x="6" y="0" width="3" height="11" rx="1" fill="currentColor" />
+                    </svg>
+                  ) : isCurrent ? (
+                    <svg width="9" height="11" viewBox="0 0 9 11" aria-hidden="true">
+                      <path d="M0 0.8v9.4a.8.8 0 0 0 1.2.7l8-4.7a.8.8 0 0 0 0-1.4l-8-4.7A.8.8 0 0 0 0 .8Z" fill="currentColor" />
+                    </svg>
+                  ) : (
+                    track.position + 1
+                  )}
                 </span>
                 <span style={{ flex: "1 1 auto", minWidth: 0 }}>
                   <span
@@ -550,7 +745,8 @@ export function PlayerOverlay({
                   </span>
                 )}
               </li>
-            ))}
+              );
+            })}
 
             {/* The page carries at most PUBLIC_TRACK_LIMIT songs, so a longer
                 playlist says so instead of appearing to end early. */}

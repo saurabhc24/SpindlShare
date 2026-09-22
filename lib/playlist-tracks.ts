@@ -23,7 +23,7 @@ const MAX_TRACKS = 200;
 
 /** Spotify joins artists with a non-breaking space, which reads oddly stored. */
 function tidy(value: string): string {
-  return value.replace(/ /g, " ").replace(/\s+/g, " ").trim();
+  return value.replace(/\u00a0/g, " ").replace(/\s+/g, " ").trim();
 }
 
 type EmbedTrack = {
@@ -31,6 +31,7 @@ type EmbedTrack = {
   subtitle?: unknown;
   duration?: unknown;
   entityType?: unknown;
+  audioPreview?: { url?: unknown } | null;
 };
 
 /**
@@ -127,11 +128,21 @@ export async function fetchPublicTracks(
         ? Math.round(entry.duration)
         : null;
 
+    // The only audio a signed-out visitor can hear. Restricted to Spotify's
+    // own host: this ends up in an <audio src>, so an arbitrary URL from a
+    // response we do not control has no business there.
+    const preview =
+      typeof entry?.audioPreview?.url === "string" &&
+      /^https:\/\/[a-z0-9-]+\.scdn\.co\//i.test(entry.audioPreview.url)
+        ? entry.audioPreview.url.slice(0, 500)
+        : null;
+
     tracks.push({
       position: tracks.length,
       title: title.slice(0, 300),
       artist: artist ? artist.slice(0, 300) : null,
       durationMs: duration,
+      previewUrl: preview,
     });
   }
 

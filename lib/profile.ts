@@ -47,7 +47,13 @@ export const getPublicProfile = cache(async (username: string) => {
       tracks: {
         orderBy: { position: "asc" },
         take: PUBLIC_TRACK_LIMIT,
-        select: { position: true, title: true, artist: true, durationMs: true },
+        select: {
+          position: true,
+          title: true,
+          artist: true,
+          durationMs: true,
+          previewUrl: true,
+        },
       },
     },
   });

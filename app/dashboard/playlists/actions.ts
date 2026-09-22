@@ -233,6 +233,7 @@ export async function refreshPlaylistLinks(): Promise<
             title: track.title,
             artist: track.artist,
             durationMs: track.durationMs,
+            previewUrl: track.previewUrl ?? null,
           })),
         }),
       ]);

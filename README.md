@@ -108,6 +108,13 @@ proxy.ts                          optimistic auth gate (Next 16's renamed middle
   what it found -- "5 playlists checked, 197 songs, 5 updated" -- in a card that
   floats clear of the flow and then takes itself away. Inline, it would have
   shifted every playlist below it each time it appeared and went.
+- **The player is ours, not an iframe.** Spotify's embed only streams to a
+  visitor with their own session open, so on a public page it mostly sits there
+  doing nothing, and a cross-origin iframe cannot be restyled to match anything.
+  Every track carries a 30-second preview MP3 that plays for anyone, so the song
+  rows are the controls and the audio is a plain `<audio>` element. Full tracks
+  are impossible for a signed-out visitor either way; this at least plays, and
+  looks like the rest of the page. YouTube keeps its iframe, having no previews.
 - **The songs come from Spotify's own embed page**, not from oEmbed. oEmbed
   publishes ten fields and not one is a track, which is why the song list sat
   empty at first; the embed page ships its whole `trackList` in a

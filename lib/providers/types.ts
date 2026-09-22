@@ -25,6 +25,8 @@ export type NormalizedTrack = {
   artist: string | null;
   /** Null for a local file, an unavailable track, or a provider that omits it. */
   durationMs: number | null;
+  /** A 30-second MP3 anyone can play, where the provider offers one. */
+  previewUrl?: string | null;
 };
 
 /** The result of an OAuth code exchange or refresh. */

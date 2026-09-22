@@ -14,6 +14,8 @@ export type ShowcaseTrack = {
   title: string;
   artist: string | null;
   durationMs: number | null;
+  /** A 30-second MP3, where the provider offers one. Null means unplayable. */
+  previewUrl: string | null;
 };
 
 export type ShowcaseItem = {
