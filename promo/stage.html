@@ -1,0 +1,354 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>SpindlShare promo stage</title>
+<style>
+  :root {
+    --bg: #080706;
+    --ink: #f4f1ec;
+    --dim: #a8a099;
+    --faint: #6f6862;
+    --gold: #e8c98a;
+    --line: #2a2522;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 1920px; height: 1080px; overflow: hidden; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font: 400 16px/1.5 ui-sans-serif, system-ui, "Segoe UI", sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* A soft bloom behind everything, so the black is never flat. */
+  .glow {
+    position: fixed;
+    inset: 0;
+    background:
+      radial-gradient(60% 55% at 22% 18%, rgba(232, 201, 138, 0.10) 0%, transparent 62%),
+      radial-gradient(52% 48% at 82% 82%, rgba(190, 60, 40, 0.11) 0%, transparent 60%);
+    pointer-events: none;
+  }
+
+  .stage { position: relative; width: 1920px; height: 1080px; }
+
+  /* ---- captions, left column ------------------------------------- */
+  .copy {
+    position: absolute;
+    left: 132px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 660px;
+  }
+  .eyebrow {
+    color: var(--gold);
+    font-size: 17px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    margin-bottom: 26px;
+    opacity: 0;
+  }
+  .line {
+    font: 600 44px/1.28 ui-serif, Georgia, "Times New Roman", serif;
+    letter-spacing: -0.015em;
+    opacity: 0;
+  }
+  .line + .line { margin-top: 16px; }
+  .line.sub {
+    font: 400 26px/1.5 ui-sans-serif, system-ui, sans-serif;
+    color: var(--dim);
+    letter-spacing: 0;
+    margin-top: 22px;
+  }
+
+  /* ---- the phone, right ------------------------------------------- */
+  .phone {
+    position: absolute;
+    right: 190px;
+    top: 50%;
+    width: 412px;
+    height: 892px;
+    margin-top: -446px;
+    border-radius: 46px;
+    overflow: hidden;
+    background: #000;
+    box-shadow:
+      0 0 0 11px #1c1917,
+      0 0 0 12px #4a423c,
+      0 0 0 14px #0d0b0a,
+      0 40px 90px rgba(0, 0, 0, 0.8),
+      0 0 120px rgba(232, 201, 138, 0.05);
+    opacity: 0;
+  }
+  .phone img, .phone iframe {
+    display: block;
+    width: 100%;
+    height: 100%;
+    border: 0;
+    object-fit: cover;
+    object-position: top center;
+  }
+
+  /* ---- title and end cards ---------------------------------------- */
+  .card {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    opacity: 0;
+  }
+  .wordmark {
+    font: 700 108px/1 ui-sans-serif, system-ui, sans-serif;
+    letter-spacing: -0.03em;
+  }
+  .wordmark em { font-style: normal; color: var(--gold); }
+  .tagline { margin-top: 26px; font-size: 27px; color: var(--dim); }
+  .url {
+    font: 600 56px/1.2 ui-monospace, SFMono-Regular, Menlo, monospace;
+    color: var(--gold);
+    letter-spacing: -0.01em;
+  }
+  .url-sub { margin-top: 24px; font-size: 26px; color: var(--dim); }
+
+  /* ---- scattered links, shot 2 ------------------------------------ */
+  .mess { position: absolute; inset: 0; opacity: 0; }
+  .chip {
+    position: absolute;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 15px 22px;
+    border-radius: 12px;
+    background: #17130f;
+    border: 1px solid var(--line);
+    font-size: 19px;
+    color: var(--dim);
+    white-space: nowrap;
+    box-shadow: 0 18px 44px rgba(0, 0, 0, 0.5);
+  }
+  .chip b { color: var(--ink); font-weight: 500; }
+  .dot { width: 11px; height: 11px; border-radius: 50%; flex: 0 0 auto; }
+
+  /* ---- the paste field, shot 3 ------------------------------------ */
+  .paste {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 760px;
+    transform: translate(-50%, -50%);
+    opacity: 0;
+  }
+  .paste-row { display: flex; align-items: center; gap: 16px; }
+  .paste-field {
+    flex: 1 1 auto;
+    padding: 24px 26px;
+    border-radius: 16px;
+    background: #14100d;
+    border: 1px solid var(--line);
+    font-size: 23px;
+    color: var(--ink);
+    min-height: 76px;
+    text-align: left;
+  }
+  .paste-field .ph { color: var(--faint); }
+  .caret {
+    display: inline-block;
+    width: 2px;
+    height: 26px;
+    background: var(--gold);
+    vertical-align: -5px;
+    margin-left: 2px;
+  }
+  .paste-go {
+    flex: 0 0 auto;
+    width: 76px;
+    height: 76px;
+    border-radius: 50%;
+    background: var(--gold);
+    color: #15120f;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 30px;
+    font-weight: 700;
+  }
+  .paste-go.press { transform: scale(0.94); }
+</style>
+</head>
+<body>
+<div class="glow"></div>
+
+<div class="stage">
+  <!-- Title / end cards -->
+  <div class="card" id="card">
+    <div class="wordmark" id="cardTitle">Spindl<em>Share</em></div>
+    <div class="tagline" id="cardSub">One link for every playlist you have made</div>
+  </div>
+
+  <!-- Scattered links -->
+  <div class="mess" id="mess"></div>
+
+  <!-- Paste field -->
+  <div class="paste" id="paste">
+    <div class="paste-row">
+      <div class="paste-field" id="pasteField"><span class="ph">Paste a playlist link</span></div>
+      <div class="paste-go" id="pasteGo">&rsaquo;</div>
+    </div>
+  </div>
+
+  <!-- Caption column -->
+  <div class="copy">
+    <div class="eyebrow" id="eyebrow"></div>
+    <div class="line" id="l1"></div>
+    <div class="line sub" id="l2"></div>
+  </div>
+
+  <!-- The product, in a phone -->
+  <div class="phone" id="phone"><div id="phoneInner" style="width:100%;height:100%"></div></div>
+</div>
+
+<script>
+/* The stage exposes a tiny API; the recorder drives it shot by shot so every
+   frame is deterministic rather than racing a timeline. */
+window.PROMO = (function () {
+  const $ = (id) => document.getElementById(id);
+  const ease = "cubic-bezier(0.22, 1, 0.36, 1)";
+
+  function show(el, on, dy) {
+    el.style.transition = `opacity 0.5s ${ease}, transform 0.6s ${ease}`;
+    el.style.opacity = on ? "1" : "0";
+    if (dy !== undefined) {
+      el.style.transform = on ? "translateY(0)" : `translateY(${dy}px)`;
+    }
+  }
+
+  return {
+    /** Everything off, so each shot starts from a known state. */
+    reset() {
+      ["card", "mess", "paste", "phone"].forEach((id) => {
+        const el = $(id);
+        el.style.transition = "none";
+        el.style.opacity = "0";
+      });
+      ["eyebrow", "l1", "l2"].forEach((id) => {
+        const el = $(id);
+        el.style.transition = "none";
+        el.style.opacity = "0";
+        el.style.transform = "translateY(14px)";
+        el.textContent = "";
+      });
+      $("phoneInner").innerHTML = "";
+      $("mess").innerHTML = "";
+      $("pasteField").innerHTML = '<span class="ph">Paste a playlist link</span>';
+      $("pasteGo").classList.remove("press");
+      return 1;
+    },
+
+    card(title, sub, mono) {
+      const t = $("cardTitle"), s = $("cardSub");
+      t.className = mono ? "url" : "wordmark";
+      s.className = mono ? "url-sub" : "tagline";
+      t.innerHTML = title;
+      s.textContent = sub;
+      show($("card"), true);
+      return 1;
+    },
+
+    caption(eyebrow, line, sub) {
+      const e = $("eyebrow"), a = $("l1"), b = $("l2");
+      e.textContent = eyebrow || "";
+      a.textContent = line || "";
+      b.textContent = sub || "";
+      // Staggered, so the eye lands on the headline first.
+      [[e, 0], [a, 120], [b, 240]].forEach(([el, delay]) => {
+        setTimeout(() => show(el, true, 14), delay);
+      });
+      return 1;
+    },
+
+    /** Puts a still of the product in the phone. */
+    phoneImage(src) {
+      $("phoneInner").innerHTML = '<img src="' + src + '" alt="">';
+      show($("phone"), true);
+      return 1;
+    },
+
+    /** Puts the live app in the phone, for the shots that must move. */
+    phoneFrame(src) {
+      $("phoneInner").innerHTML =
+        '<iframe src="' + src + '" title="SpindlShare"></iframe>';
+      // Next's dev badge sits inside the frame; strip it once it has booted.
+      const strip = () => {
+        const f = $("phoneInner").querySelector("iframe");
+        const d = f && f.contentDocument;
+        if (d) {
+          const portal = d.querySelector("nextjs-portal");
+          if (portal) portal.remove();
+        }
+      };
+      [600, 1400, 2400, 3600].forEach((t) => setTimeout(strip, t));
+      show($("phone"), true);
+      return 1;
+    },
+
+    scatter(items) {
+      const host = $("mess");
+      host.innerHTML = "";
+      items.forEach((it, i) => {
+        const chip = document.createElement("div");
+        chip.className = "chip";
+        chip.style.left = it.x + "px";
+        chip.style.top = it.y + "px";
+        chip.style.transform = `rotate(${it.r}deg) translateY(26px)`;
+        chip.style.opacity = "0";
+        chip.style.transition = `opacity 0.45s ${ease}, transform 0.55s ${ease}`;
+        chip.innerHTML =
+          '<span class="dot" style="background:' + it.c + '"></span>' +
+          '<span><b>' + it.name + '</b> &nbsp;' + it.svc + '</span>';
+        host.appendChild(chip);
+        setTimeout(() => {
+          chip.style.opacity = "1";
+          chip.style.transform = `rotate(${it.r}deg) translateY(0)`;
+        }, 90 * i);
+      });
+      $("mess").style.transition = "opacity 0.3s";
+      $("mess").style.opacity = "1";
+      return 1;
+    },
+
+    pasteShow() { show($("paste"), true); return 1; },
+
+    /** One character at a time, so the recorder can film it typing. */
+    pasteType(text) {
+      $("pasteField").textContent = text;
+      const caret = document.createElement("span");
+      caret.className = "caret";
+      $("pasteField").appendChild(caret);
+      return 1;
+    },
+
+    pastePress() {
+      const go = $("pasteGo");
+      go.style.transition = "transform 0.16s ease";
+      go.classList.add("press");
+      setTimeout(() => go.classList.remove("press"), 180);
+      return 1;
+    },
+
+    fadeAll() {
+      ["card", "mess", "paste", "phone", "eyebrow", "l1", "l2"].forEach((id) => {
+        const el = $(id);
+        el.style.transition = "opacity 0.45s ease";
+        el.style.opacity = "0";
+      });
+      return 1;
+    },
+  };
+})();
+</script>
+</body>
+</html>

@@ -49,14 +49,19 @@ export default async function EmbedPage({
   if (items.length === 0) notFound();
 
   return (
-    <div
-      className="relative h-[100dvh] w-full overflow-hidden"
-      style={{
-        background:
-          "radial-gradient(120% 70% at 50% -10%, oklch(0.24 0.02 70) 0%, oklch(0.15 0.015 65) 34%, #060504 78%)",
-      }}
-    >
-      {layout === "arc" ? <Arc items={items} /> : <Deck items={items} />}
-    </div>
+    <>
+      {/* The dev-only badge is Next's, and this route exists to be filmed and
+          screenshotted, so it has no business in frame. */}
+      <style>{"nextjs-portal{display:none!important}"}</style>
+      <div
+        className="relative h-[100dvh] w-full overflow-hidden"
+        style={{
+          background:
+            "radial-gradient(120% 70% at 50% -10%, oklch(0.24 0.02 70) 0%, oklch(0.15 0.015 65) 34%, #060504 78%)",
+        }}
+      >
+        {layout === "arc" ? <Arc items={items} /> : <Deck items={items} />}
+      </div>
+    </>
   );
 }
