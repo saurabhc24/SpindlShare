@@ -1,22 +1,30 @@
-# Promo video
+# Feature video
 
-`spindlshare-promo.mp4` — 1920x1080, 36s, silent, H.264.
+`spindlshare-feature.mp4`: 1920x1080, 30 fps, about 45 seconds, silent, H.264.
 
-Rebuild it:
+A logo open, six features, and an end card: one link for every playlist,
+pasting a link, the stacked shelf, the arc, tap a song to play it, and curating
+the dashboard. The logo is the product's own wordmark face and the headlines
+the homepage's display face, loaded from `app/_fonts/`.
+
+## Rebuild
 
 ```bash
-npm run dev                     # the recorder films the real app
-cd promo && node record.mjs http://localhost:3000
+npm run dev
+npx @puppeteer/browsers install chrome-headless-shell@stable --path ./.browsers
+BROWSER=<path to chrome-headless-shell> FFMPEG=<path to ffmpeg> \
+  node promo/record.mjs http://localhost:3000
 ```
 
-`stage.html` is the set: captions, the phone frame, the title and end cards.
-`record.mjs` drives it shot by shot, captures a frame at a fixed cadence, and
-muxes with ffmpeg. Frames are pulled one at a time rather than streamed, so the
-same run gives the same video however slow the machine is.
+`stage.html` is the set. `record.mjs` plays it in real time and films it with
+the screencast, so the motion in the file runs at the speed it ran on screen.
 
-Shots 5 and 6 iframe `/embed/stacked` and `/embed/arc`, which render the
-shipped `Deck` and `Arc` against real playlists. The motion in frame is the
-product's own, not a re-creation.
+Use chrome-headless-shell, not a full browser. The screencast films the window,
+and headless Edge opens its own panels in the window partway through a run,
+which cropped the film. The recorder refuses any frame that is not exactly
+1920x1080 and fails the run rather than let one through.
 
-Needs `ffmpeg-static` on the path the script expects; install it in the working
-directory if it is missing.
+The shelf and player shots are the shipped `Deck` and `Arc` in `/embed/*`,
+driven through DevTools. The recorder checks that the shelf moved, the arc
+moved, the player opened and a song was playing, and exits non-zero if any did
+not. It blocks `/api/visit`, so filming does not count as a visit.

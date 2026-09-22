@@ -1,288 +1,353 @@
-/* Records the SpindlShare promo.
+/* Films the SpindlShare feature video from the running app.
  *
- * Drives the stage shot by shot in a headless browser, captures a frame at a
- * fixed cadence, then muxes them with ffmpeg. Frames are pulled one at a time
- * rather than streamed, so the output is deterministic: the same run produces
- * the same video, however slow the machine is that day. */
+ *   npm run dev
+ *   node promo/record.mjs http://localhost:3000
+ *
+ * The stage plays in real time and the screencast captures it with real
+ * timestamps, so motion in the file runs at the speed it ran on screen. Run it
+ * on chrome-headless-shell (BROWSER=...): full browsers open panels in the
+ * window mid-run and the screencast films the window, so they crop the film.
+ * The shelf shots are the shipped Deck and Arc, driven through DevTools, and
+ * each interaction is checked so a silent no-op cannot pass. */
 
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { spawn, spawnSync } from "node:child_process";
-import { fileURLToPath } from "node:url";
+import { createRequire } from "node:module";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
-const FRAMES = path.join(HERE, "frames");
-const OUT = path.join(HERE, "spindlshare-promo.mp4");
-const FPS = 25;
 const APP = process.argv[2] || "http://localhost:3000";
-const EDGE = "C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe";
-
-fs.rmSync(FRAMES, { recursive: true, force: true });
-fs.mkdirSync(FRAMES, { recursive: true });
+const USER = process.argv[3] || "saurabhchandra";
+const OUT = path.join(HERE, "spindlshare-feature.mp4");
+const FPS = 30;
+// chrome-headless-shell, ideally: full browsers open panels and bars in the
+// window mid-run, and the screencast films the window, so they crop the film.
+const BROWSER =
+  process.env.BROWSER || "C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe";
+const SHELL = /headless-shell/i.test(BROWSER);
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
+function findFfmpeg() {
+  if (process.env.FFMPEG && fs.existsSync(process.env.FFMPEG)) return process.env.FFMPEG;
+  try {
+    const bin = createRequire(path.join(HERE, "..", "package.json"))("ffmpeg-static");
+    if (bin && fs.existsSync(bin)) return bin;
+  } catch {}
+  return "ffmpeg";
+}
+
 /* ---------------------------------------------------------------- browser */
-const PORT = 9410 + Math.floor(Math.random() * 60);
-const profile = fs.mkdtempSync(path.join(os.tmpdir(), "promo-"));
+const FRAMES = fs.mkdtempSync(path.join(os.tmpdir(), "spindl-frames-"));
+const PORT = 9500 + Math.floor(Math.random() * 80);
+const profile = fs.mkdtempSync(path.join(os.tmpdir(), "spindl-promo-"));
 const browser = spawn(
-  EDGE,
+  BROWSER,
   [
-    "--headless=new",
+    ...(SHELL ? [] : ["--headless=new"]),
     `--remote-debugging-port=${PORT}`,
     `--user-data-dir=${profile}`,
     "--no-first-run",
     "--hide-scrollbars",
+    "--mute-audio",
     "--autoplay-policy=no-user-gesture-required",
+    "--allow-file-access-from-files",
     "--force-device-scale-factor=1",
+    "--window-size=1920,1080",
     "about:blank",
   ],
   { stdio: "ignore" }
 );
 
 let wsurl;
-for (let i = 0; i < 100; i++) {
+for (let i = 0; i < 120; i++) {
   try {
     const r = await fetch(`http://127.0.0.1:${PORT}/json/version`);
     if (r.ok) { wsurl = (await r.json()).webSocketDebuggerUrl; break; }
   } catch {}
   await sleep(250);
 }
-if (!wsurl) throw new Error("browser did not start");
+if (!wsurl) throw new Error("the browser did not start");
 
 const ws = new WebSocket(wsurl);
 await new Promise((r) => ws.addEventListener("open", r, { once: true }));
 
-let id = 1;
+let nextId = 1;
 const pending = new Map();
-const events = [];
+const seen = [];
+const frames = [];
+let capturing = false;
+let sessionId;
+const children = [];
+let t0 = 0;
+const marks = { scenes: {} };
+
 ws.addEventListener("message", (e) => {
   const m = JSON.parse(e.data);
   if (m.id && pending.has(m.id)) {
     const { res, rej } = pending.get(m.id);
     pending.delete(m.id);
     m.error ? rej(new Error(JSON.stringify(m.error))) : res(m.result);
-  } else if (m.method) events.push(m.method);
+    return;
+  }
+  if (!m.method) return;
+  seen.push(m.method);
+  if (m.method === "Page.screencastFrame") {
+    const { data, metadata, sessionId: frameSession } = m.params;
+    if (capturing) {
+      const file = path.join(FRAMES, `f${String(frames.length).padStart(6, "0")}.jpg`);
+      fs.writeFileSync(file, Buffer.from(data, "base64"));
+      frames.push({ file, ts: metadata.timestamp });
+    }
+    send("Page.screencastFrameAck", { sessionId: frameSession }, sessionId).catch(() => {});
+  }
+  if (m.method === "Target.attachedToTarget" && m.params.targetInfo.type === "iframe") {
+    const child = m.params.sessionId;
+    children.push({ url: m.params.targetInfo.url, sid: child });
+    // Held at start, so the beacon is blocked before the frame's first request.
+    (async () => {
+      await send("Network.enable", {}, child).catch(() => {});
+      await send("Network.setBlockedURLs", { urls: ["*/api/visit*"] }, child).catch(() => {});
+      await send("Runtime.runIfWaitingForDebugger", {}, child).catch(() => {});
+    })();
+  }
 });
-const send = (method, params = {}, sid) =>
-  new Promise((res, rej) => {
-    const i = id++;
+
+function send(method, params = {}, sid) {
+  return new Promise((res, rej) => {
+    const i = nextId++;
     pending.set(i, { res, rej });
     ws.send(JSON.stringify({ id: i, method, params, ...(sid ? { sessionId: sid } : {}) }));
   });
+}
 
 const { targetId } = await send("Target.createTarget", { url: "about:blank" });
-const { sessionId } = await send("Target.attachToTarget", { targetId, flatten: true });
+({ sessionId } = await send("Target.attachToTarget", { targetId, flatten: true }));
 await send("Page.enable", {}, sessionId);
+await send("Network.enable", {}, sessionId);
+// Filming is not a visit; without this every run adds one to the admin count.
+await send("Network.setBlockedURLs", { urls: ["*/api/visit*"] }, sessionId);
+// The app's frames load out of process, so each is its own target to attach to.
+await send("Target.setAutoAttach",
+  { autoAttach: true, waitForDebuggerOnStart: true, flatten: true }, sessionId);
+
+// Pinned, so the page is always 1920x1080 however the window around it changes.
 await send("Emulation.setDeviceMetricsOverride",
   { width: 1920, height: 1080, deviceScaleFactor: 1, mobile: false }, sessionId);
 
-const run = async (expr) => {
+async function run(expression, sid) {
   const r = await send("Runtime.evaluate",
-    { expression: expr, returnByValue: true, awaitPromise: true }, sessionId);
-  if (r.exceptionDetails) {
-    console.log("  EVAL:", JSON.stringify(r.exceptionDetails).slice(0, 180));
-  }
+    { expression, returnByValue: true, awaitPromise: true }, sid || sessionId);
+  if (r.exceptionDetails) throw new Error(JSON.stringify(r.exceptionDetails).slice(0, 240));
   return r.result.value;
+}
+
+/* The app's frames, each attached as its own target: a cross-origin frame's
+   DOM is out of the stage's reach, which is what the last version got wrong. */
+async function frameContext(match) {
+  // Attached before they navigated, so ask each frame where it ended up.
+  for (let i = 0; i < 80; i++) {
+    for (const c of children) {
+      c.url = await run("location.href", c.sid).catch(() => c.url);
+      if (match(c.url)) return c.sid;
+    }
+    await sleep(250);
+  }
+  throw new Error("no frame matched; attached " + JSON.stringify(children.map((c) => c.url)));
+}
+
+/* -------------------------------------------------------------- the stage */
+const stage = pathToFileURL(path.join(HERE, "stage.html")).href +
+  `?app=${encodeURIComponent(APP)}&u=${encodeURIComponent(USER)}`;
+seen.length = 0;
+await send("Page.navigate", { url: stage }, sessionId);
+for (let i = 0; i < 200 && !seen.includes("Page.loadEventFired"); i++) await sleep(100);
+
+// Fonts, cover art, and three copies of the app all have to be up first.
+let ready;
+for (let i = 0; i < 60; i++) {
+  ready = JSON.parse(await run("PROMO.ready()"));
+  if (ready.fonts === "loaded" && ready.images) break;
+  await sleep(500);
+}
+console.log("stage:", JSON.stringify(ready));
+
+const ctx = {
+  stacked: await frameContext((u) => u.includes("/embed/stacked") && !u.includes("shot=play")),
+  arc: await frameContext((u) => u.includes("/embed/arc")),
+  play: await frameContext((u) => u.includes("shot=play")),
+};
+for (const [name, id] of Object.entries(ctx)) {
+  let cards = 0;
+  for (let i = 0; i < 60 && cards < 1; i++) {
+    cards = await run("document.querySelectorAll('[data-card], [data-cover]').length", id);
+    if (!cards) await sleep(500);
+  }
+  if (!cards) throw new Error(`the ${name} frame never rendered its shelf`);
+  console.log(`frame ${name}: ${cards} cards`);
+}
+await sleep(1500);
+
+const checks = [];
+const check = (label, ok, detail) => {
+  checks.push({ label, ok });
+  console.log(`  ${ok ? "PASS" : "FAIL"}  ${label}  ${detail ?? ""}`);
 };
 
+const FIRST_TRANSFORM =
+  "getComputedStyle(document.querySelector('[data-card], [data-cover]')).transform";
+const WHEEL = `(() => {
+  const s = document.querySelector('.touch-none') || document.body;
+  s.dispatchEvent(new WheelEvent('wheel', { deltaY: 120, bubbles: true, cancelable: true }));
+  return 1;
+})()`;
+const FRONT = `(document.querySelector('[data-cover][aria-current="true"]')
+  || document.querySelectorAll('[data-card], [data-cover]')[0])`;
+
 /* ------------------------------------------------------------- recording */
-let frame = 0;
-async function grab() {
-  const shot = await send("Page.captureScreenshot", { format: "png" }, sessionId);
-  fs.writeFileSync(
-    path.join(FRAMES, `f${String(frame++).padStart(5, "0")}.png`),
-    Buffer.from(shot.data, "base64")
-  );
-}
-/** Holds the current state for `seconds`, capturing at the target rate. */
-async function hold(seconds) {
-  const n = Math.round(seconds * FPS);
-  for (let i = 0; i < n; i++) await grab();
-}
-
-const stage = "file:///" + path.join(HERE, "stage.html").replace(/\\/g, "/");
-events.length = 0;
-await send("Page.navigate", { url: stage }, sessionId);
-for (let i = 0; i < 150 && !events.includes("Page.loadEventFired"); i++) await sleep(100);
-await sleep(700);
-
-const say = (eyebrow, line, sub) =>
-  run(`PROMO.caption(${JSON.stringify(eyebrow)},${JSON.stringify(line)},${JSON.stringify(sub)})`);
-
+await send("Page.startScreencast",
+  { format: "jpeg", quality: 90, maxWidth: 1920, maxHeight: 1080, everyNthFrame: 1 }, sessionId);
+capturing = true;
+t0 = Date.now() / 1000;
 console.log("Recording...");
 
-/* 1. Title ---------------------------------------------------------------- */
-console.log("  1/8 title");
-await run("PROMO.reset()");
-await run(
-  'PROMO.card("Spindl<em>Share</em>", "One link for every playlist you have made", false)'
-);
-await hold(3.2);
-await run("PROMO.fadeAll()");
-await hold(0.5);
+// 0. Logo
+marks.scenes[0] = 0; await run("PROMO.go(0)");
+await sleep(4500);
 
-/* 2. The problem ---------------------------------------------------------- */
-console.log("  2/8 the problem");
-await run("PROMO.reset()");
-await say(
-  "The problem",
-  "Your playlists are split across Spotify and YouTube.",
-  "Sharing them means sending three links and explaining which is which."
-);
-await run(`PROMO.scatter([
-  { x: 1120, y: 210, r: -4, c: "#1ed760", name: "OG B-TOWN", svc: "Spotify" },
-  { x: 1360, y: 360, r: 3,  c: "#1ed760", name: "Hollywood", svc: "Spotify" },
-  { x: 1080, y: 520, r: -2, c: "#ff3d3d", name: "Road Trip", svc: "YouTube" },
-  { x: 1330, y: 665, r: 5,  c: "#1ed760", name: "Bhajans", svc: "Spotify" },
-  { x: 1140, y: 820, r: -3, c: "#ff3d3d", name: "Late Night", svc: "YouTube" }
-])`);
-await hold(4.6);
-await run("PROMO.fadeAll()");
-await hold(0.5);
+// 01. One link
+marks.scenes[1] = +(Date.now() / 1000 - t0).toFixed(2); await run("PROMO.go(1)");
+await sleep(5600);
 
-/* 3. Paste ---------------------------------------------------------------- */
-console.log("  3/8 paste");
-await run("PROMO.reset()");
-await say(
-  "The setup",
-  "Paste any playlist link.",
-  "No account to connect, and no permissions to grant."
-);
-await run("PROMO.pasteShow()");
-await hold(1.0);
+// 02. Paste: held long enough that the toggle is seen after it flips.
+marks.scenes[2] = +(Date.now() / 1000 - t0).toFixed(2); await run("PROMO.go(2)");
+await sleep(6200);
 
-// Typed a chunk at a time, so the caret reads as someone entering a URL.
-const URL_TEXT = "https://open.spotify.com/playlist/4X9STQs4rZQjXHLlhjVaNY";
-for (let i = 6; i <= URL_TEXT.length; i += 3) {
-  await run(`PROMO.pasteType(${JSON.stringify(URL_TEXT.slice(0, i))})`);
-  await grab();
-}
-await hold(0.6);
-await run("PROMO.pastePress()");
-await hold(0.8);
-await run("PROMO.fadeAll()");
-await hold(0.5);
-
-/* 4. It arrives ----------------------------------------------------------- */
-console.log("  4/8 it arrives");
-await run("PROMO.reset()");
-await say(
-  "The setup",
-  "The cover art arrives with it.",
-  "That is the entire setup."
-);
-await run(`PROMO.phoneImage("${APP}/cs-shots/dashboard.png")`);
-await hold(3.8);
-await run("PROMO.fadeAll()");
-await hold(0.5);
-
-/* 5. The shelf, live ------------------------------------------------------ */
-console.log("  5/8 the shelf");
-await run("PROMO.reset()");
-await say(
-  "The page",
-  "Your playlists become a shelf people flick through.",
-  "Endless in both directions, and the list never repeats."
-);
-await run(`PROMO.phoneFrame("${APP}/embed/stacked?u=saurabhchandra")`);
-await hold(1.6);
-// Scroll the real deck, so the motion in frame is the product's own.
+// 03. The shelf, scrolled for real
+marks.scenes[3] = +(Date.now() / 1000 - t0).toFixed(2); await run("PROMO.go(3)");
+await sleep(1500);
+let before = await run(FIRST_TRANSFORM, ctx.stacked);
 for (let i = 0; i < 4; i++) {
-  await run(`(() => {
-    const f = document.querySelector('#phoneInner iframe');
-    const d = f && f.contentDocument;
-    if (!d) return 0;
-    const s = d.querySelector('.touch-none') || d.body;
-    s.dispatchEvent(new f.contentWindow.WheelEvent('wheel',
-      { deltaY: 120, bubbles: true, cancelable: true }));
-    return 1;
-  })()`);
-  await hold(0.85);
+  await run(WHEEL, ctx.stacked);
+  await sleep(1150);
 }
-await run("PROMO.fadeAll()");
-await hold(0.5);
+check("the stacked shelf moved", (await run(FIRST_TRANSFORM, ctx.stacked)) !== before);
 
-/* 6. The arc -------------------------------------------------------------- */
-console.log("  6/8 the arc");
-await run("PROMO.reset()");
-await say(
-  "The page",
-  "Or an arc, if you have a lot of them.",
-  "Same shelf, your choice on the settings page."
-);
-await run(`PROMO.phoneFrame("${APP}/embed/arc?u=saurabhchandra")`);
-await hold(1.6);
+// 04. The arc
+marks.scenes[4] = +(Date.now() / 1000 - t0).toFixed(2); await run("PROMO.go(4)");
+await sleep(1400);
+before = await run(FIRST_TRANSFORM, ctx.arc);
 for (let i = 0; i < 3; i++) {
-  await run(`(() => {
-    const f = document.querySelector('#phoneInner iframe');
-    const d = f && f.contentDocument;
-    if (!d) return 0;
-    const s = d.querySelector('.touch-none') || d.body;
-    s.dispatchEvent(new f.contentWindow.WheelEvent('wheel',
-      { deltaY: 120, bubbles: true, cancelable: true }));
-    return 1;
-  })()`);
-  await hold(0.85);
+  await run(WHEEL, ctx.arc);
+  await sleep(1250);
 }
-await run("PROMO.fadeAll()");
-await hold(0.5);
+check("the arc moved", (await run(FIRST_TRANSFORM, ctx.arc)) !== before);
 
-/* 7. It plays ------------------------------------------------------------- */
-console.log("  7/8 it plays");
-await run("PROMO.reset()");
-await say(
-  "The payoff",
-  "Open one and the songs are there, ready to play.",
-  "Thirty-second previews, with no sign-in needed."
-);
-await run(`PROMO.phoneImage("${APP}/cs-shots/real-songs.png")`);
-await hold(2.2);
-// Swap to the playing still, so the shot ends on something sounding.
-await run(`PROMO.phoneImage("${APP}/cs-shots/real-player.png")`);
-await hold(2.6);
-await run("PROMO.fadeAll()");
-await hold(0.5);
+// 05. Lift a card, open it, play a song
+marks.scenes[5] = +(Date.now() / 1000 - t0).toFixed(2); await run("PROMO.go(5)");
+await sleep(1100);
+await run(`${FRONT}.click()`, ctx.play);
+await sleep(1100);
+await run(`${FRONT}.click()`, ctx.play);
+await sleep(1800);
+const opened = await run(
+  "!!document.querySelector('[role=\"dialog\"][aria-modal=\"true\"][aria-hidden=\"false\"]')", ctx.play);
+check("the player opened", opened);
+await run("(() => { const r = document.querySelectorAll('[role=\"dialog\"] ol li'); if (r[2]) r[2].click(); return r.length; })()", ctx.play);
+await sleep(2600);
+const playing = await run(
+  "(() => { const a = document.querySelector('[role=\"dialog\"] audio'); return !!a && !a.paused && a.currentTime > 0; })()",
+  ctx.play);
+check("a song is actually playing", playing);
 
-/* 8. The address ---------------------------------------------------------- */
-console.log("  8/8 the address");
-await run("PROMO.reset()");
-await run(
-  'PROMO.card("spindlshare.vercel.app/<em>yourname</em>", "Claim yours in under a minute.", true)'
-);
-await hold(3.6);
-await run("PROMO.fadeAll()");
-await hold(0.6);
+// 06. Curate
+marks.scenes[6] = +(Date.now() / 1000 - t0).toFixed(2); await run("PROMO.go(6)");
+await sleep(5000);
 
-console.log(`Captured ${frame} frames (${(frame / FPS).toFixed(1)}s)`);
+// Outro
+marks.scenes[7] = +(Date.now() / 1000 - t0).toFixed(2); await run("PROMO.go(7)");
+await sleep(5200);
 
+capturing = false;
+const t1 = Date.now() / 1000;
+await send("Page.stopScreencast", {}, sessionId);
+await run("(() => { document.querySelectorAll('iframe').forEach(f => { try { f.remove(); } catch {} }); return 1; })()");
 await send("Target.closeTarget", { targetId });
 ws.close();
 browser.kill();
 
 /* ---------------------------------------------------------------- encode */
-const ffmpeg = path.join(HERE, "..", "node_modules", "ffmpeg-static", "ffmpeg.exe");
-if (!fs.existsSync(ffmpeg)) throw new Error("ffmpeg-static not found at " + ffmpeg);
+function jpegSize(file) {
+  const b = fs.readFileSync(file);
+  for (let i = 2; i < b.length - 9; ) {
+    if (b[i] !== 0xff) { i++; continue; }
+    const marker = b[i + 1];
+    if (marker >= 0xc0 && marker <= 0xc3) {
+      return { h: b.readUInt16BE(i + 5), w: b.readUInt16BE(i + 7) };
+    }
+    i += 2 + b.readUInt16BE(i + 2);
+  }
+  return { w: 0, h: 0 };
+}
+const sizes = new Map();
+for (const f of frames) {
+  const { w, h } = jpegSize(f.file);
+  f.full = w === 1920 && h === 1080;
+  const key = `${w}x${h}`;
+  sizes.set(key, (sizes.get(key) || 0) + 1);
+}
+console.log("frame sizes:", JSON.stringify(Object.fromEntries(sizes)));
+const inWindow = frames.filter((f) => f.ts >= t0 - 0.05);
+const kept = inWindow.filter((f) => f.full);
+check("every frame is full size", kept.length === inWindow.length,
+  `${kept.length}/${inWindow.length}`);
+// A dropped run of frames shows up as a freeze, so the longest gap must stay short.
+let longest = 0, at = 0;
+for (let i = 1; i < kept.length; i++) {
+  const gap = kept[i].ts - kept[i - 1].ts;
+  if (gap > longest) { longest = gap; at = kept[i - 1].ts - t0; }
+}
+const slow = [];
+for (let i = 1; i < kept.length; i++) {
+  const gap = kept[i].ts - kept[i - 1].ts;
+  if (gap > 0.12) slow.push(`${(kept[i - 1].ts - t0).toFixed(2)}s+${(gap * 1000) | 0}ms`);
+}
+console.log("gaps over 120ms:", slow.join(", ") || "none");
+console.log("scene starts:", JSON.stringify(marks.scenes));
+check("no visible freeze between frames", longest < 0.25, `${(longest * 1000).toFixed(0)}ms`);
+if (kept.length < 10) throw new Error(`only ${kept.length} frames were captured`);
+console.log(`Captured ${kept.length} frames over ${(t1 - t0).toFixed(1)}s, ${(kept.length / (t1 - t0)).toFixed(1)} fps`);
 
-const args = [
+// Each frame holds until the next arrives; the screencast only sends changes.
+const lines = [];
+for (let i = 0; i < kept.length; i++) {
+  const end = i + 1 < kept.length ? kept[i + 1].ts : t1;
+  lines.push(`file '${kept[i].file.replace(/\\/g, "/")}'`);
+  lines.push(`duration ${Math.max(0.001, end - kept[i].ts).toFixed(4)}`);
+}
+lines.push(`file '${kept[kept.length - 1].file.replace(/\\/g, "/")}'`);
+const list = path.join(FRAMES, "list.txt");
+fs.writeFileSync(list, lines.join("\n"));
+
+const ffmpeg = findFfmpeg();
+console.log("Encoding with", ffmpeg);
+const enc = spawnSync(ffmpeg, [
   "-y",
-  "-framerate", String(FPS),
-  "-i", path.join(FRAMES, "f%05d.png"),
-  "-c:v", "libx264",
-  "-preset", "slow",
-  "-crf", "19",
-  // Even dimensions and yuv420p, or the file will not play in most players.
-  "-pix_fmt", "yuv420p",
+  "-f", "concat", "-safe", "0", "-i", list,
+  "-vf", `fps=${FPS},scale=1920:1080:flags=lanczos,format=yuv420p`,
+  "-c:v", "libx264", "-preset", "slow", "-crf", "20",
   "-movflags", "+faststart",
   OUT,
-];
-console.log("Encoding...");
-const enc = spawnSync(ffmpeg, args, { encoding: "utf8" });
+], { encoding: "utf8" });
 if (enc.status !== 0) {
-  console.log((enc.stderr || "").split("\n").slice(-14).join("\n"));
+  console.log((enc.stderr || "").split("\n").slice(-12).join("\n"));
   throw new Error("ffmpeg failed");
 }
-const size = fs.statSync(OUT).size;
-console.log(`\nWrote ${OUT}`);
-console.log(`${(size / 1e6).toFixed(1)} MB, ${(frame / FPS).toFixed(1)}s, 1920x1080 @ ${FPS}fps`);
+fs.rmSync(FRAMES, { recursive: true, force: true });
+
+const failed = checks.filter((c) => !c.ok).length;
+console.log(`\nWrote ${OUT}  (${(fs.statSync(OUT).size / 1e6).toFixed(1)} MB)`);
+console.log(failed ? `${failed} interaction check(s) FAILED` : "every interaction check passed");
+process.exit(failed ? 1 : 0);
