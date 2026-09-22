@@ -205,6 +205,9 @@ export function PlaylistBoard({
       const parts = [
         `${result.refreshed} ${result.refreshed === 1 ? "playlist" : "playlists"} checked`,
       ];
+      if (result.songs > 0) {
+        parts.push(`${result.songs} ${result.songs === 1 ? "song" : "songs"}`);
+      }
       parts.push(result.updated > 0 ? `${result.updated} updated` : "nothing changed");
       setSyncNote(`${parts.join(", ")}.`);
       // Matches the fade above, so the element leaves once it is invisible

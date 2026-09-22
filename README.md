@@ -105,9 +105,17 @@ proxy.ts                          optimistic auth gate (Next 16's renamed middle
   organisations, so in practice every playlist here arrives as a pasted link.
   The reload icon on the "Chosen" row re-reads each one through the same oEmbed
   lookup pasting uses, writing back a changed name or cover art, and reports
-  what it found -- "5 playlists checked, 1 updated" -- in a card that floats
-  clear of the flow and then takes itself away. Inline, it would have shifted
-  every playlist below it each time it appeared and went. It cannot bring in songs:
+  what it found -- "5 playlists checked, 197 songs, 5 updated" -- in a card that
+  floats clear of the flow and then takes itself away. Inline, it would have
+  shifted every playlist below it each time it appeared and went.
+- **The songs come from Spotify's own embed page**, not from oEmbed. oEmbed
+  publishes ten fields and not one is a track, which is why the song list sat
+  empty at first; the embed page ships its whole `trackList` in a
+  `__NEXT_DATA__` blob that needs no account. That blob is internal and carries
+  no compatibility promise, so `lib/playlist-tracks.ts` searches for the list
+  rather than walking a fixed path, and every failure returns an empty array: a
+  shape change costs the song list and never the page. YouTube publishes no
+  such list, so its playlists keep the player alone. It cannot bring in songs:
   oEmbed publishes a title and a thumbnail and nothing else. The connected-
   account sync path still exists behind `/api/sync` for the day that approval
   comes through; nothing in the UI reaches it.

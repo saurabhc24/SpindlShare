@@ -1,0 +1,737 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>SpindlShare case study draft</title>
+<style>
+  :root {
+    --bg: #0b0a09;
+    --panel: #141110;
+    --line: #262220;
+    --ink: #f4f1ec;
+    --dim: #a8a099;
+    --faint: #6f6862;
+    --gold: #e8c98a;
+    --measure: 68ch;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font: 16px/1.65 ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 860px; margin: 0 auto; padding: 0 24px; }
+
+  /* Draft ribbon: this file is a working draft, not a page to publish as-is. */
+  .draft {
+    background: #1d1713;
+    border-bottom: 1px solid var(--line);
+    color: var(--dim);
+    font-size: 12.5px;
+    padding: 10px 24px;
+    text-align: center;
+  }
+  .draft b { color: var(--gold); font-weight: 600; }
+
+  header.hero { padding: 88px 0 56px; }
+  .eyebrow {
+    color: var(--gold);
+    font-size: 12px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    margin: 0 0 20px;
+  }
+  h1 {
+    font: 600 clamp(32px, 6vw, 52px)/1.1 ui-serif, Georgia, "Times New Roman", serif;
+    margin: 0 0 20px;
+    letter-spacing: -0.02em;
+  }
+  .standfirst {
+    color: var(--dim);
+    font-size: clamp(17px, 2.4vw, 19px);
+    max-width: var(--measure);
+    margin: 0;
+  }
+
+  .meta {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 20px 32px;
+    border-top: 1px solid var(--line);
+    border-bottom: 1px solid var(--line);
+    padding: 24px 0;
+    margin: 44px 0 0;
+  }
+  .meta dt {
+    color: var(--faint);
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin: 0 0 6px;
+  }
+  .meta dd { margin: 0; font-size: 14.5px; }
+
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+    gap: 24px;
+    margin: 40px 0 0;
+  }
+  .stats b {
+    display: block;
+    font: 600 30px/1 ui-serif, Georgia, serif;
+    color: var(--gold);
+  }
+  .stats span { color: var(--faint); font-size: 12.5px; }
+
+  section { padding: 56px 0; border-top: 1px solid var(--line); }
+  h2 {
+    font: 600 clamp(22px, 3.4vw, 28px)/1.25 ui-serif, Georgia, serif;
+    margin: 0 0 8px;
+    letter-spacing: -0.01em;
+  }
+  .kicker {
+    color: var(--gold);
+    font-size: 12px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    margin: 0 0 14px;
+  }
+  p { max-width: var(--measure); margin: 0 0 18px; }
+  .lead { font-size: 17.5px; }
+  strong { color: #fff; font-weight: 600; }
+
+  figure { margin: 32px 0; }
+  figure img {
+    display: block;
+    width: 100%;
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    background: var(--panel);
+  }
+  /* Phone captures: held near their real size rather than blown up to the
+     column, which made a 412px screenshot read as a tablet. */
+  figure.phone img { max-width: 300px; margin: 0 auto; }
+  .pair figure.phone img { max-width: 100%; }
+  figcaption { color: var(--faint); font-size: 13px; margin-top: 10px; max-width: var(--measure); }
+  .pair { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  @media (max-width: 640px) { .pair { grid-template-columns: 1fr; } }
+
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 22px 24px;
+    margin: 0 0 16px;
+  }
+  .card h3 { margin: 0 0 8px; font-size: 16px; font-weight: 600; }
+  .card p { margin: 0; color: var(--dim); font-size: 14.5px; }
+
+  .pull {
+    border-left: 2px solid var(--gold);
+    padding: 4px 0 4px 20px;
+    margin: 28px 0;
+    font: 400 clamp(18px, 2.8vw, 21px)/1.45 ui-serif, Georgia, serif;
+    color: #fff;
+    max-width: var(--measure);
+  }
+
+  .note {
+    background: #17120e;
+    border: 1px solid #2c2118;
+    border-radius: 12px;
+    padding: 18px 20px;
+    margin: 28px 0;
+  }
+  .note p { margin: 0; font-size: 14.5px; color: var(--dim); }
+  .note p + p { margin-top: 10px; }
+
+  ul { max-width: var(--measure); padding-left: 20px; color: var(--dim); }
+  li { margin-bottom: 9px; }
+  li strong { color: var(--ink); }
+
+  code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.88em;
+    background: #1c1917;
+    padding: 2px 6px;
+    border-radius: 5px;
+    color: var(--gold);
+  }
+
+  .cta { text-align: center; padding: 72px 0 96px; border-top: 1px solid var(--line); }
+  .cta h2 { margin-bottom: 14px; }
+  .cta p { margin-left: auto; margin-right: auto; }
+  .btn {
+    display: inline-block;
+    margin: 12px 8px 0;
+    padding: 13px 26px;
+    border-radius: 100px;
+    font-size: 14.5px;
+    font-weight: 600;
+    text-decoration: none;
+  }
+  .btn-a { background: var(--gold); color: #1a1512; }
+  .btn-b { border: 1px solid var(--line); color: var(--ink); }
+
+  /* ---- live prototypes ---------------------------------------------- */
+  .demo {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    padding: 20px;
+    margin: 28px 0;
+  }
+  .demo-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 16px;
+    margin: 0 0 14px;
+    flex-wrap: wrap;
+  }
+  .demo-head h3 { margin: 0; font-size: 15px; font-weight: 600; }
+  .demo-hint { color: var(--faint); font-size: 12.5px; margin: 0; }
+
+  .demo-stage {
+    position: relative;
+    height: 260px;
+    border-radius: 12px;
+    background: radial-gradient(120% 70% at 50% -10%, #241d16 0%, #14100d 40%, #0a0807 80%);
+    overflow: hidden;
+    touch-action: none;
+    cursor: grab;
+    outline: none;
+  }
+  .demo-stage:focus-visible { box-shadow: 0 0 0 2px var(--gold); }
+  .demo-stage:active { cursor: grabbing; }
+
+  .demo-card {
+    position: absolute;
+    left: 44%;
+    top: 54%;
+    margin: -66px 0 0 -66px;
+    padding: 0;
+    border: 0;
+    border-radius: 10px;
+    overflow: hidden;
+    background: #0a0806;
+    cursor: pointer;
+    transition: filter 0.2s;
+  }
+  .demo-card img { display: block; width: 100%; height: 100%; object-fit: cover; }
+  .demo-label {
+    position: absolute;
+    top: 6px;
+    right: 7px;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    color: #fff;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.9);
+    pointer-events: none;
+  }
+
+  .demo-stage-arc { height: 230px; }
+  .demo-arc-cover {
+    position: absolute;
+    left: 0;
+    top: 0;
+    border-radius: 9px;
+    overflow: hidden;
+    background: #0a0806;
+  }
+  .demo-arc-cover img { display: block; width: 100%; height: 100%; object-fit: cover; }
+  .demo-arc-detail {
+    position: absolute;
+    left: 246px;
+    top: 110px;
+    transform: translateY(-50%);
+    border-left: 2px solid var(--gold);
+    padding-left: 12px;
+    pointer-events: none;
+  }
+  .demo-arc-title { margin: 0; font-size: 13px; font-weight: 600; color: #fff; letter-spacing: 0.04em; }
+  .demo-arc-sub { margin: 3px 0 0; font-size: 11px; color: var(--dim); }
+
+  .demo-btn {
+    margin-top: 12px;
+    padding: 8px 16px;
+    border-radius: 100px;
+    border: 1px solid var(--line);
+    background: transparent;
+    color: var(--ink);
+    font: inherit;
+    font-size: 13px;
+    cursor: pointer;
+  }
+  .demo-btn:hover { border-color: var(--gold); color: var(--gold); }
+
+  /* Layout-shift comparison */
+  .demo-shift { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  @media (max-width: 620px) { .demo-shift { grid-template-columns: 1fr; } }
+  .demo-shift-head { margin: 0 0 8px; font-size: 12px; color: var(--faint); letter-spacing: 0.08em; text-transform: uppercase; }
+  .demo-shift-panel {
+    position: relative;
+    background: #0e0c0a;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 12px;
+    min-height: 190px;
+    overflow: hidden;
+  }
+  .demo-shift-row { font-size: 12.5px; font-weight: 700; color: #fff; margin-bottom: 10px; }
+  .demo-shift-note { font-size: 11.5px; color: var(--gold); margin-bottom: 10px; }
+  .demo-shift-fixed {
+    position: absolute;
+    left: 12px;
+    right: 12px;
+    bottom: 10px;
+    margin: 0;
+    text-align: center;
+    background: #1a1512;
+    border: 1px solid #2c2118;
+    border-radius: 100px;
+    padding: 6px 10px;
+  }
+  .demo-shift-item {
+    background: #17130f;
+    border-radius: 8px;
+    padding: 10px 12px;
+    margin-bottom: 8px;
+    font-size: 12px;
+    color: var(--dim);
+  }
+  .demo-shift-readout { margin: 8px 0 0; font-size: 11.5px; color: var(--faint); font-variant-numeric: tabular-nums; }
+
+  /* Refresh control */
+  .demo-spin { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+  .demo-spin-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    border: 1px solid var(--line);
+    background: transparent;
+    color: var(--ink);
+    cursor: pointer;
+  }
+  .demo-spin-btn:hover { border-color: var(--gold); }
+  .demo-spin-btn.is-busy { cursor: not-allowed; }
+  .demo-spin-btn.is-busy svg { animation: demoSpin 0.9s linear infinite; }
+  @keyframes demoSpin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+  .demo-spin-note { font-size: 12.5px; color: var(--dim); min-height: 1em; }
+  .demo-spin-note.is-fading { animation: demoFade 4s ease-in forwards; }
+  @keyframes demoFade { 0%, 60% { opacity: 1; } 100% { opacity: 0; } }
+
+  @media (prefers-reduced-motion: reduce) {
+    .demo-spin-btn.is-busy svg { animation-duration: 2.4s; }
+    .demo-spin-note.is-fading { animation: none; }
+  }
+
+  .demo-frame {
+    position: relative;
+    width: 100%;
+    max-width: 393px;
+    margin: 0 auto;
+    aspect-ratio: 393 / 560;
+    border-radius: 14px;
+    overflow: hidden;
+    border: 1px solid var(--line);
+    background: #0a0807;
+  }
+  .demo-frame iframe { display: block; width: 100%; height: 100%; border: 0; }
+
+  .flow {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 14px;
+    margin: 28px 0 0;
+  }
+  @media (max-width: 720px) { .flow { grid-template-columns: repeat(2, 1fr); } }
+  .flow figure { margin: 0; }
+  .flow img {
+    width: 100%;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    display: block;
+  }
+  .flow figcaption {
+    margin-top: 8px;
+    font-size: 11.5px;
+    line-height: 1.45;
+    color: var(--faint);
+  }
+  .flow b {
+    display: block;
+    color: var(--gold);
+    font-size: 10.5px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-bottom: 3px;
+    font-weight: 600;
+  }
+</style>
+</head>
+<body>
+
+<div class="draft">
+  <b>Draft</b> for your portfolio. Screenshots are the real product, captured from
+  the live site. Check the one stat noted below before publishing.
+</div>
+
+<div class="wrap">
+
+  <header class="hero">
+    <p class="eyebrow">Case study / Design &amp; Build</p>
+    <h1>Everything you've got spinning, on one link.</h1>
+    <p class="standfirst">
+      Your playlists live in four different apps. SpindlShare gives them one
+      address: a shelf you curate, shared the way a link is shared.
+    </p>
+
+    <dl class="meta">
+      <div><dt>Role</dt><dd>Product design, UX, frontend, backend</dd></div>
+      <div><dt>Type</dt><dd>Self-initiated product, shipped</dd></div>
+      <div><dt>Timeline</dt><dd>Jul to Sep 2026, ongoing</dd></div>
+      <div><dt>Stack</dt><dd>Next.js 16, TypeScript, Prisma 7, Postgres, Tailwind 4</dd></div>
+    </dl>
+
+    <div class="stats">
+      <div><b>2</b><span>ways to show a shelf</span></div>
+      <div><b>3</b><span>taps to a playing song</span></div>
+      <div><b>10</b><span>fields a public link gives you</span></div>
+      <div><b>132</b><span>commits, solo</span></div>
+    </div>
+  </header>
+
+  <section>
+    <p class="kicker">The problem</p>
+    <h2>Sharing a playlist means sharing an app, not a taste</h2>
+    <p class="lead">
+      People's listening is split across services. The playlist you made for a
+      road trip is on Spotify; the one you actually fall asleep to is on YouTube.
+      Sharing all of it means pasting three links and explaining which is which.
+    </p>
+    <p>
+      A link-in-bio tool can hold those links, but it flattens them into
+      identical rows. A playlist is not a row. It has a cover, a mood, a length,
+      and none of that survives being listed as blue text.
+    </p>
+    <p>
+      So the brief became narrow on purpose: <strong>one page, one link, and the
+      playlists have to look like playlists.</strong>
+    </p>
+  </section>
+
+  <section>
+    <p class="kicker">The insight</p>
+    <h2>The cover art is the interface</h2>
+    <p class="lead">
+      Every playlist already ships with the only visual anybody recognises. Lead
+      with the artwork and the page explains itself before a word is read.
+    </p>
+    <p>
+      That reframed the page from a list into a shelf, something you flick
+      through rather than scan. It also set the constraint the rest of the build
+      answered to: if the artwork is the interface, the chrome has to get out of
+      its way.
+    </p>
+
+    <figure class="phone">
+      <img src="/cs-shots/real-shelf.png" alt="A public SpindlShare profile: playlist covers stacked and receding up to the right" />
+      <figcaption>
+        The public page. Covers stack and recede; the name and share button float
+        over them rather than pushing them down.
+      </figcaption>
+    </figure>
+  </section>
+
+  <section>
+    <p class="kicker">The front door</p>
+    <h2>Four screens from a stranger to a shelf</h2>
+    <p class="lead">
+      The homepage has one job: say what this is, and offer the one button that
+      matters. No feature grid, no pricing table, no scroll-to-learn-more.
+    </p>
+
+    <figure class="phone">
+      <img src="/cs-shots/flow-1-home.png" alt="The SpindlShare homepage" />
+      <figcaption>
+        The headline is the product description. The dot-matrix panel and the
+        turntable line art do the rest, so the copy never has to explain that
+        this is about music.
+      </figcaption>
+    </figure>
+
+    <div class="flow">
+      <figure>
+        <img src="/cs-shots/flow-1-home.png" alt="Homepage with Claim your link" />
+        <figcaption><b>1. Arrive</b>Claim your link, or sign in if you have one.</figcaption>
+      </figure>
+      <figure>
+        <img src="/cs-shots/flow-2-login.png" alt="The sign-in screen" />
+        <figcaption><b>2. Sign in</b>One button. Google, and nothing to fill in.</figcaption>
+      </figure>
+      <figure>
+        <img src="/cs-shots/flow-4-verify.png" alt="Check your email" />
+        <figcaption><b>3. Or by email</b>A link that expires in 24 hours.</figcaption>
+      </figure>
+      <figure>
+        <img src="/cs-shots/flow-5-guarded.png" alt="The dashboard redirecting to sign in" />
+        <figcaption><b>4. Guarded</b>Reaching the dashboard signed out returns you here.</figcaption>
+      </figure>
+    </div>
+
+    <div class="note">
+      <p>
+        <strong>Why one button.</strong> Every field on a sign-up form is a
+        place to leave. The account exists only to own a username and a list, so
+        there is nothing worth asking for that Google does not already answer.
+      </p>
+      <p>
+        <strong>The email path is built and switched off.</strong> It needs a
+        Resend key, which this deployment has no budget for, so the live site
+        offers Google alone. The screen above is real, and the code behind it
+        ships; it turns on with one environment variable.
+      </p>
+    </div>
+  </section>
+
+  <section>
+    <p class="kicker">The craft</p>
+    <h2>Small decisions that make a shelf feel like an object</h2>
+
+    <div class="card">
+      <h3>Two layouts, one shelf</h3>
+      <p>
+        A stacked deck for people with a handful of playlists, an arc carousel
+        for people with many. Same data, same chrome; the owner picks in
+        settings and the public page swaps the component.
+      </p>
+    </div>
+
+    <div class="card">
+      <h3>Geometry as ratios, not pixels</h3>
+      <p>
+        The deck is a 184px card stepping 40px on both axes in a 393px frame,
+        stored as fractions of the measured stage, so it holds its proportions
+        on any screen instead of needing a constant per breakpoint.
+      </p>
+    </div>
+
+    <div class="card">
+      <h3>One gesture, one card</h3>
+      <p>
+        Any scroll past a small threshold plays a fixed animation to completion
+        and ignores further input until it lands. A flick and a shove move the
+        deck by exactly the same amount.
+      </p>
+    </div>
+
+    <div class="card">
+      <h3>Endless without duplication</h3>
+      <p>
+        Position wraps modulo the playlist count, so the shelf runs forever in
+        both directions without the list ever being copied. Both ends fade, so
+        cards dissolve in and out instead of popping at the window edge.
+      </p>
+    </div>
+
+    <div class="demo">
+      <div class="demo-head">
+        <h3>Stacked, running live</h3>
+        <p class="demo-hint">Scroll it, drag it, tap a card.</p>
+      </div>
+      <div class="demo-frame">
+        <iframe
+          src="/embed/stacked?u=saurabhchandra"
+          title="The stacked shelf, running"
+          loading="lazy"
+        ></iframe>
+      </div>
+      <p class="demo-hint" style="margin-top:12px">
+        Not a rebuild: this is the shipped <code>Deck</code> component, with the
+        same playlists the live page serves. A card steps 40/184ths of itself on
+        both axes, and position wraps modulo the count so the run never ends.
+      </p>
+    </div>
+
+    <div class="demo">
+      <div class="demo-head">
+        <h3>Arc, running live</h3>
+        <p class="demo-hint">Same input, a different shelf.</p>
+      </div>
+      <div class="demo-frame">
+        <iframe
+          src="/embed/arc?u=saurabhchandra"
+          title="The arc shelf, running"
+          loading="lazy"
+        ></iframe>
+      </div>
+      <p class="demo-hint" style="margin-top:12px">
+        The shipped <code>Arc</code> component. Covers ride a circle of radius
+        2.1 times the stage height, and a mask dissolves the ends before they
+        can reach the chrome.
+      </p>
+    </div>
+
+    <div class="pair">
+      <figure class="phone">
+        <img src="/cs-shots/real-lifted.png" alt="The stacked shelf on the live site, a card lifted" />
+        <figcaption>Stacked, on the live site.</figcaption>
+      </figure>
+      <figure class="phone">
+        <img src="/cs-shots/real-arc.png" alt="The arc layout on the live site, covers riding a curve with blurred ends" />
+        <figcaption>Arc, on the live site.</figcaption>
+      </figure>
+    </div>
+
+    <p class="pull">
+      The arc's ends don't get cut off. They blur as they go, and a mask on the
+      stage dissolves them before they can touch the header.
+    </p>
+    <p>
+      Culling covers at the band's edge ended the ribbon on a hard line. Fading
+      each one individually let a cover sit at 0.39 opacity with half of it over
+      the header. The mask is what actually guarantees nothing paints there.
+    </p>
+  </section>
+
+  <section>
+    <p class="kicker">The constraint</p>
+    <h2>The API I designed for wasn't available to me</h2>
+    <p class="lead">
+      The original plan was to connect Spotify and YouTube, import every
+      playlist, and store the songs. I built that: OAuth, token refresh,
+      encrypted at rest, sync reconciliation, the lot.
+    </p>
+    <p>
+      Then the wall: <strong>both services gate the scopes bulk import needs
+      behind an approved-organisation review.</strong> A solo project doesn't
+      clear it. Everything I'd built assumed a door that wouldn't open.
+    </p>
+    <p>
+      So the product pivoted to the one route that works without permission:
+      <strong>paste a link.</strong> The public oEmbed endpoint returns a
+      playlist's title and cover art to anyone who asks. That's ten fields, and
+      not one of them is a track, which quietly settled what the product could
+      and couldn't promise.
+    </p>
+
+    <div class="note">
+      <p>
+        <strong>What it cost.</strong> The song list I'd designed under each
+        player can't be populated from a pasted link. Rather than leave a
+        promise the data can't keep, the refresh control says what it actually
+        does: re-reads each playlist's name and cover art.
+      </p>
+      <p>
+        <strong>What it saved.</strong> No OAuth, no tokens, no approval queue.
+        Adding a playlist went from a four-screen connect flow to pasting a URL,
+        which is how people share playlists anyway.
+      </p>
+    </div>
+
+    <div class="demo">
+      <div class="demo-head">
+        <h3>The refresh control</h3>
+        <p class="demo-hint">Press it. It reports, then takes itself away.</p>
+      </div>
+      <div id="demo-spin"></div>
+    </div>
+
+    <div class="demo">
+      <div class="demo-head">
+        <h3>Why the note floats</h3>
+        <p class="demo-hint">Toggle both. Watch where the first row lands.</p>
+      </div>
+      <div id="demo-shift"></div>
+      <p class="demo-hint" style="margin-top:12px">
+        Inline, the note pushes every playlist down and pulls them back up
+        again. Fixed, it costs no layout at all: on the real page the first row
+        stays at 294px and the page height at 1021px, before, during and after.
+      </p>
+    </div>
+
+    <figure class="phone">
+      <img src="/cs-shots/dashboard.png" alt="The Playlists dashboard on the live site, five playlists with their cover art" />
+      <figcaption>
+        The dashboard: toggle what shows, drag to order, paste to add.
+      </figcaption>
+    </figure>
+  </section>
+
+  <section>
+    <p class="kicker">The process</p>
+    <h2>Built by measuring, not by eyeballing</h2>
+    <p class="lead">
+      Motion is the hard part of a shelf, and screenshots lie about it. So every
+      interaction got checked by driving a headless browser and reading the DOM
+      back for real numbers, on a real device size.
+    </p>
+    <ul>
+      <li>
+        <strong>The spinning icon.</strong> Having the class isn't proof. The
+        check reads the running animation and samples its angle twice: 100
+        degrees, then minus 167.
+      </li>
+      <li>
+        <strong>The floating card.</strong> The requirement was that nothing
+        moves. Verified by measuring the first playlist's position and the page
+        height before, during and after: 294px and 1021px, unchanged.
+      </li>
+      <li>
+        <strong>The label's contrast.</strong> A first pass said 20:1 and was
+        wrong, because it was sampling the white text, not the cover behind it.
+        Corrected, the real figure was 1.59:1: illegible. That's what put the
+        gradient behind the titles.
+      </li>
+    </ul>
+    <p>
+      Several times the measurements passed while the screenshot showed a
+      problem: a tonearm clipped off its deck, a provider logo frozen while the
+      text around it moved. Both got caught by looking.
+    </p>
+
+    <figure class="phone">
+      <img src="/cs-shots/real-songs.png" alt="The player page: turntable, compact Spotify bar, and the song list beneath" />
+      <figcaption>
+        The player. Shrinking the turntable from 208px to 150px took the visible
+        song rows from four to nine on a 412px screen.
+      </figcaption>
+    </figure>
+  </section>
+
+  <section>
+    <p class="kicker">The maker</p>
+    <h2>A solo project, taken end to end</h2>
+    <p class="lead">
+      Product thinking, interaction design, visual design, frontend, backend,
+      database, auth, deployment. 132 commits over two months, still going.
+    </p>
+    <ul>
+      <li><strong>Design.</strong> The shelf metaphor, both layouts, the dashboard, the settings, the admin.</li>
+      <li><strong>Frontend.</strong> Next.js 16 App Router, React 19, Tailwind 4; the deck and arc are hand-written geometry, no animation library.</li>
+      <li><strong>Backend.</strong> Prisma 7 on Postgres, ten models, Auth.js v5 with Google and email sign-in, rate limiting per account and per IP, tokens encrypted with AES-256-GCM.</li>
+      <li><strong>Care.</strong> Twelve check suites, ISR-cached public pages, reduced-motion honoured throughout.</li>
+    </ul>
+  </section>
+
+  <div class="cta">
+    <h2>Go make a shelf</h2>
+    <p>One link, everything you've got spinning.</p>
+    <a class="btn btn-a" href="https://spindlshare.vercel.app/" target="_blank" rel="noopener">See it live</a>
+    <a class="btn btn-b" href="https://spindlshare.vercel.app/demo" target="_blank" rel="noopener">Open the demo shelf</a>
+  </div>
+
+</div>
+
+<script src="/demos.js"></script>
+</body>
+</html>

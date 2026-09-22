@@ -9,6 +9,7 @@ import {
   parsePlaylistLink,
   resolvePlaylistLink,
 } from "@/lib/playlist-link";
+import { fetchPublicTracks } from "@/lib/playlist-tracks";
 import { prisma } from "@/lib/prisma";
 import { RATE_LIMITS, rateLimitAll } from "@/lib/rate-limit";
 
@@ -143,6 +144,8 @@ export type RefreshResult = {
   refreshed: number;
   /** How many changed their title or cover as a result. */
   updated: number;
+  /** Songs stored across all of them. */
+  songs: number;
   /** Playlists the service would not describe, by title. */
   failed: string[];
 };
@@ -151,9 +154,10 @@ export type RefreshResult = {
  * Re-reads every pasted playlist, exactly as though each link were pasted
  * again: the same oEmbed lookup, writing back a changed title or cover.
  *
- * It cannot bring in songs. oEmbed publishes a title and a thumbnail and
- * nothing else, and a pasted link carries no account token to ask with -- the
- * track list needs a connected account, which this deployment has no route to.
+ * It also stores the songs. Spotify's embed page publishes its own track list,
+ * so they can be read for any public playlist without an account -- see
+ * lib/playlist-tracks. A playlist whose songs cannot be read keeps its title
+ * and cover; only the list is missing.
  */
 export async function refreshPlaylistLinks(): Promise<
   RefreshResult & { error?: string }
@@ -170,6 +174,7 @@ export async function refreshPlaylistLinks(): Promise<
     return {
       refreshed: 0,
       updated: 0,
+      songs: 0,
       failed: [],
       error: "You're refreshing very quickly. Please wait a moment.",
     };
@@ -182,11 +187,13 @@ export async function refreshPlaylistLinks(): Promise<
       title: true,
       coverImageUrl: true,
       externalUrl: true,
+      trackCount: true,
     },
   });
 
   let refreshed = 0;
   let updated = 0;
+  let songs = 0;
   const failed: string[] = [];
 
   for (const playlist of playlists) {
@@ -210,9 +217,33 @@ export async function refreshPlaylistLinks(): Promise<
     }
 
     refreshed++;
+
+    // The songs, from the provider's own embed. Empty means they could not be
+    // read, which must not wipe a list stored on an earlier run.
+    const tracks = await fetchPublicTracks(link);
+    if (tracks.length > 0) {
+      // Replaced wholesale: position is the identity, so a reordered playlist
+      // would otherwise keep rows from its previous shape.
+      await prisma.$transaction([
+        prisma.track.deleteMany({ where: { playlistId: playlist.id } }),
+        prisma.track.createMany({
+          data: tracks.map((track) => ({
+            playlistId: playlist.id,
+            position: track.position,
+            title: track.title,
+            artist: track.artist,
+            durationMs: track.durationMs,
+          })),
+        }),
+      ]);
+      songs += tracks.length;
+    }
+
     const changed =
       resolved.title !== playlist.title ||
-      (resolved.coverImageUrl ?? null) !== playlist.coverImageUrl;
+      (resolved.coverImageUrl ?? null) !== playlist.coverImageUrl ||
+      // The count is what the lifted card shows, so it follows the list.
+      (tracks.length > 0 && tracks.length !== playlist.trackCount);
     if (!changed) continue;
 
     await prisma.playlist.update({
@@ -220,6 +251,7 @@ export async function refreshPlaylistLinks(): Promise<
       data: {
         title: resolved.title,
         coverImageUrl: resolved.coverImageUrl,
+        ...(tracks.length > 0 ? { trackCount: tracks.length } : {}),
         lastSyncedAt: new Date(),
       },
     });
@@ -229,7 +261,7 @@ export async function refreshPlaylistLinks(): Promise<
   revalidatePath(`/${profile.usernameNormalized}`);
   revalidatePath("/dashboard");
 
-  return { refreshed, updated, failed };
+  return { refreshed, updated, songs, failed };
 }
 
 /**
