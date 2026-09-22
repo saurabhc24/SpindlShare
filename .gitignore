@@ -51,3 +51,6 @@ next-env.d.ts
 /.agents
 /.windsurf
 skills-lock.json
+
+# chrome-headless-shell, for promo/record.mjs
+.browsers
