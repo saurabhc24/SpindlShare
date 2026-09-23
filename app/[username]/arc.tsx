@@ -81,7 +81,7 @@ function coverGradient(key: string): string {
   return `linear-gradient(150deg, oklch(0.68 0.19 ${hue}), oklch(0.5 0.16 ${(hue + 30) % 360}))`;
 }
 
-export function Arc({ items }: { items: ShowcaseItem[] }) {
+export function Arc({ items, address }: { items: ShowcaseItem[]; address?: string }) {
   const [offset, setOffset] = useState(0);
   const [playing, setPlaying] = useState<ShowcaseItem | null>(null);
   // Which way the last gesture went. A ref, not state: it must not itself cause
@@ -391,7 +391,8 @@ export function Arc({ items }: { items: ShowcaseItem[] }) {
       <PlayerOverlay
         item={playing}
         gradient={playing ? coverGradient(playing.id) : ""}
-        dotColor={playing ? PROVIDER_DOT[playing.provider] : "#fff"}
+        brandColor={playing ? PROVIDER_DOT[playing.provider] : "#fff"}
+        address={address}
         onClose={() => setPlaying(null)}
       />
     </>

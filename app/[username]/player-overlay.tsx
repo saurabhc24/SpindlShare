@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { playlistEmbed } from "@/lib/playlist-embed";
+import { ProviderIcon } from "@/components/provider-badge";
 import { isYouTubeMusic } from "@/lib/playlist-link";
 
 import { mountEmbedPlayer, type EmbedControl } from "./embed-player";
@@ -40,12 +41,15 @@ const PIVOT = Math.round(DECK * 0.163);
 export function PlayerOverlay({
   item,
   gradient,
-  dotColor,
+  brandColor,
+  address,
   onClose,
 }: {
   item: ShowcaseItem | null;
   gradient: string;
-  dotColor: string;
+  brandColor: string;
+  /** The profile's address, for the footer; absent where there is no profile. */
+  address?: string;
   onClose: () => void;
 }) {
   const [playing, setPlaying] = useState(false);
@@ -271,15 +275,13 @@ export function PlayerOverlay({
             color: "var(--ink-dim)",
           }}
         >
-          <span
-            style={{
-              width: 7,
-              height: 7,
-              borderRadius: "50%",
-              background: dotColor,
-              boxShadow: `0 0 8px ${dotColor}`,
-            }}
-          />
+          {item && (
+            <ProviderIcon
+              provider={item.provider}
+              className="h-3.5 w-3.5"
+              style={{ color: brandColor }}
+            />
+          )}
           {item?.providerLabel}
         </div>
       </div>
@@ -866,6 +868,22 @@ export function PlayerOverlay({
           </ol>
         )}
       </div>
+
+      {/* The profile's own footer, in flow so the song list ends above it. */}
+      <footer
+        style={{
+          flex: "0 0 auto",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          gap: 6,
+          padding: "12px 16px 18px",
+          borderTop: "1px solid var(--line)",
+        }}
+      >
+        {address && <span className="text-[11px] text-[#68625a]">{address}</span>}
+        <span className="wordmark text-sm text-white">SpindlShare</span>
+      </footer>
     </div>
   );
 }

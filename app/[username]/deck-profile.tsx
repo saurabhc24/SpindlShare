@@ -60,7 +60,11 @@ export function DeckProfile({
           "radial-gradient(120% 70% at 50% -10%, oklch(0.24 0.02 70) 0%, oklch(0.15 0.015 65) 34%, #060504 78%)",
       }}
     >
-      {layout === "arc" ? <Arc items={items} /> : <Deck items={items} />}
+      {layout === "arc" ? (
+        <Arc items={items} address={shareDisplay} />
+      ) : (
+        <Deck items={items} address={shareDisplay} />
+      )}
 
       {/* pointer-events-none so the deck stays draggable underneath; the button
           re-enables them for itself. */}

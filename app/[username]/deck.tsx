@@ -155,7 +155,7 @@ function coverGradient(key: string): string {
   return `linear-gradient(150deg, oklch(0.68 0.19 ${hue}), oklch(0.5 0.16 ${(hue + 30) % 360}))`;
 }
 
-export function Deck({ items }: { items: ShowcaseItem[] }) {
+export function Deck({ items, address }: { items: ShowcaseItem[]; address?: string }) {
   // Fractional position in the deck. Whole part picks the front card, the
   // remainder is what slides the whole stack between two cards.
   const [offset, setOffset] = useState(0);
@@ -417,7 +417,8 @@ export function Deck({ items }: { items: ShowcaseItem[] }) {
       <PlayerOverlay
         item={playing}
         gradient={playing ? coverGradient(playing.id) : ""}
-        dotColor={playing ? PROVIDER_DOT[playing.provider] : "#fff"}
+        brandColor={playing ? PROVIDER_DOT[playing.provider] : "#fff"}
+        address={address}
         onClose={() => setPlaying(null)}
       />
     </>
