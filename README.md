@@ -128,10 +128,13 @@ proxy.ts                          optimistic auth gate (Next 16's renamed middle
 - **YouTube's songs come from its playlist page**, whose `ytInitialData` lists
   the first 100 with their video ids, and YouTube Music's art tracks among
   them: their "Artist - Topic" channel is where the artist name comes from.
-  YouTube has no 30-second previews and its terms want the player visible, so
-  its embed stays and the rows drive it through the IFrame API instead of an
-  `<audio>` element: a tap loads that video, and when one ends the next row
-  plays. The player opens on the first song rather than on the list, because
+  YouTube has no audio-only previews, so its songs play through the IFrame
+  API player, kept on the page at opacity 0 behind the same bar and rows as
+  Spotify's: a video window above a song list read as a different product.
+  This is a deliberate trade against YouTube's API terms, which require the
+  player to stay visible; if YouTube enforces them, this is what breaks. It
+  is opacity rather than `display: none`, which stops the frame loading at
+  all. The player opens on the first song rather than on the list, because
   some YouTube Music list ids load in the embed as "This video is unavailable".
   The watch URL is stored in `previewUrl`, being what plays the row, which
   spared a migration.

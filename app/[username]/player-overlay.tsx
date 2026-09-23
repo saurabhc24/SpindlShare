@@ -58,6 +58,8 @@ export function PlayerOverlay({
   // plays for a visitor with its own session open, which most visitors do not
   // have -- so on this page it mostly sits there doing nothing.
   const playable = tracks.some((track) => track.previewUrl);
+  // YouTube songs play through its player, kept on the page but out of sight, behind the same bar.
+  const youTubeSongs = item?.provider === "YOUTUBE" && tracks.some((track) => track.videoId);
   // Memoised: a fresh object each render re-ran the mount effect and tore the player down.
   const embed = useMemo(
     () => (item && !playable ? playlistEmbed(item.provider, item.externalId) : null),
@@ -83,6 +85,7 @@ export function PlayerOverlay({
   // player's long-lived callbacks read the list without remounting it.
   const controlRef = useRef<EmbedControl | null>(null);
   const drivenRef = useRef(false);
+  const pendingRef = useRef<string | null>(null);
   const tracksRef = useRef(tracks);
   const currentRef = useRef(current);
   useEffect(() => {
@@ -105,9 +108,15 @@ export function PlayerOverlay({
       const track = tracks.find((t) => t.position === position);
       if (track?.videoId) {
         const control = controlRef.current;
-        // No player to drive, or one that refuses this video: YouTube itself still plays it.
-        if (!control || blocked.has(position)) {
+        // A video its owner will not let play here still plays on YouTube itself.
+        if (blocked.has(position)) {
           window.open(`https://www.youtube.com/watch?v=${track.videoId}`, "_blank", "noopener");
+          return;
+        }
+        // Tapped before the player finished loading: it starts as soon as it is ready.
+        if (!control) {
+          pendingRef.current = track.videoId;
+          setCurrent(position);
           return;
         }
         if (current === position) {
@@ -144,6 +153,8 @@ export function PlayerOverlay({
 
   const handleControl = useCallback((control: EmbedControl | null) => {
     controlRef.current = control;
+    if (control && pendingRef.current) control.play(pendingRef.current);
+    pendingRef.current = null;
   }, []);
 
   // Also follows YouTube's own playlist, so the row that is playing is marked either way.
@@ -508,7 +519,7 @@ export function PlayerOverlay({
           />
         )}
 
-        {playable && item && (
+        {(playable || youTubeSongs) && item && (
           <div
             style={{
               flex: "0 0 auto",
@@ -524,7 +535,7 @@ export function PlayerOverlay({
             <button
               type="button"
               onClick={() => {
-                const first = tracks.find((t) => t.previewUrl);
+                const first = tracks.find((t) => t.previewUrl || t.videoId);
                 if (current !== null) playTrack(current);
                 else if (first) playTrack(first.position);
               }}
@@ -584,7 +595,9 @@ export function PlayerOverlay({
               >
                 {current !== null
                   ? tracks.find((t) => t.position === current)?.artist
-                  : "30-second previews"}
+                  : youTubeSongs
+                    ? `Full songs, from ${item.providerLabel}`
+                    : "30-second previews"}
               </span>
             </span>
 
@@ -601,12 +614,28 @@ export function PlayerOverlay({
                 textDecoration: "none",
               }}
             >
-              Full tracks
+              {youTubeSongs ? "Open" : "Full tracks"}
             </a>
           </div>
         )}
 
-        {embed ? (
+        {embed && youTubeSongs ? (
+          // Invisible but not display:none, which would stop the frame loading at all.
+          <div
+            aria-hidden="true"
+            style={{
+              position: "absolute",
+              left: 0,
+              bottom: 0,
+              width: embed.height,
+              height: embed.height,
+              opacity: 0,
+              pointerEvents: "none",
+            }}
+          >
+            <div ref={hostRef} style={{ width: "100%", height: "100%" }} />
+          </div>
+        ) : embed ? (
           <>
             {/* Matching YouTube's own 16:9 removes the bars we were adding
                 around the bars it already draws, so an art track's sleeve fills
