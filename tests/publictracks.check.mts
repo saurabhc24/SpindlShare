@@ -11,6 +11,7 @@ import "dotenv/config";
 type FetchArgs = Parameters<typeof fetch>;
 
 let body: string | null = null;
+let ytBody: string | null = null;
 let status = 200;
 const requested: string[] = [];
 
@@ -24,6 +25,11 @@ globalThis.fetch = (async (input: FetchArgs[0], init?: FetchArgs[1]) => {
       status,
       headers: { "Content-Type": "text/html" },
     });
+  }
+  if (url.startsWith("https://www.youtube.com/playlist?list=")) {
+    requested.push(url);
+    if (ytBody === null) throw new Error("network down");
+    return new Response(ytBody, { status: 200, headers: { "Content-Type": "text/html" } });
   }
   return realFetch(input, init);
 }) as typeof fetch;
@@ -140,10 +146,6 @@ check("a network failure yields nothing", (await fetchPublicTracks(LINK)).length
 console.log("\nWhat it refuses to ask for");
 body = page([song("Nope", "A", 1)]);
 requested.length = 0;
-check("YouTube is not attempted, having no such list",
-  (await fetchPublicTracks(YT)).length === 0 && requested.length === 0,
-  JSON.stringify(requested));
-
 requested.length = 0;
 const bad = { ...LINK, externalId: "not a real id'; drop--" };
 check("a malformed id never reaches the network",
@@ -158,6 +160,70 @@ body = `<html><script id="__NEXT_DATA__">${JSON.stringify({
 tracks = await fetchPublicTracks(LINK);
 check("a deeper path is still found", tracks.length === 1 && tracks[0].title === "Moved",
   JSON.stringify(tracks.map((t) => t.title)));
+
+// YouTube's playlist page, in both layouts it serves: lockups now, renderers before.
+console.log("\nYouTube playlists");
+const lockup = (id: string, title: string, channel: string, clock: string) => ({
+  lockupViewModel: {
+    contentId: id,
+    contentType: "LOCKUP_CONTENT_TYPE_VIDEO",
+    contentImage: { thumbnailViewModel: { overlays: [{ thumbnailBottomOverlayViewModel: { badges: [{ thumbnailBadgeViewModel: { text: clock } }] } }] } },
+    metadata: { lockupMetadataViewModel: {
+      title: { content: title },
+      metadata: { contentMetadataViewModel: { metadataRows: [{ metadataParts: [{ text: { content: channel } }] }, { metadataParts: [{ text: { content: "40M views" } }] }] } },
+    } },
+  },
+});
+const ytPage = (contents: unknown, extra: object = {}) =>
+  `<html><script>var ytInitialData = ${JSON.stringify({ contents, ...extra })};</script></html>`;
+
+ytBody = ytPage({ list: [
+  lockup("MbWpPuuU1Vc", "Bole Chudiyan", "Jatin Lalit - Topic", "6:49"),
+  lockup("C0S0PMpNybM", "Tum Mile", "Pritam", "1:02:05"),
+  lockup("tYHrT837H0M", "[Private video]", "", ""),
+  lockup("bad id!", "Crafted", "X", "1:00"),
+  { lockupViewModel: { contentId: "PLabcdefghijk", contentType: "LOCKUP_CONTENT_TYPE_PLAYLIST" } },
+] }, { sidebar: [lockup("vtfS-7VJDQM", "Sidebar song", "Nobody", "3:00")] });
+requested.length = 0;
+tracks = await fetchPublicTracks(YT);
+check("reads the songs from the page body", tracks.length === 2, JSON.stringify(tracks.map((t) => t.title)));
+check("asks only the canonical playlist page",
+  requested.length === 1 && requested[0] === `https://www.youtube.com/playlist?list=${YT.externalId}`,
+  JSON.stringify(requested));
+check("a Topic channel becomes the artist", tracks[0]?.artist === "Jatin Lalit", String(tracks[0]?.artist));
+check("an ordinary channel is kept as is", tracks[1]?.artist === "Pritam");
+check("durations are parsed, hours included",
+  tracks[0]?.durationMs === 409_000 && tracks[1]?.durationMs === 3_725_000,
+  JSON.stringify(tracks.map((t) => t.durationMs)));
+check("the watch URL is stored as what plays it",
+  tracks[0]?.previewUrl === "https://www.youtube.com/watch?v=MbWpPuuU1Vc");
+check("positions are contiguous after skips", tracks.map((t) => t.position).join() === "0,1");
+
+ytBody = ytPage({ list: [{ playlistVideoRenderer: {
+  videoId: "1nrKhy0z6JI", title: { runs: [{ text: "Kal Ho Naa Ho" }] },
+  shortBylineText: { runs: [{ text: "Sonu Nigam - Topic" }] }, lengthSeconds: "321",
+} }, { playlistVideoRenderer: { videoId: "ic7dA4wYpFk", title: { simpleText: "Gone" }, isPlayable: false } }] });
+tracks = await fetchPublicTracks(YT);
+check("the older renderer layout still reads",
+  tracks.length === 1 && tracks[0].title === "Kal Ho Naa Ho" && tracks[0].artist === "Sonu Nigam" &&
+    tracks[0].durationMs === 321_000,
+  JSON.stringify(tracks));
+
+ytBody = "<html>consent wall</html>";
+check("a YouTube page without data yields nothing", (await fetchPublicTracks(YT)).length === 0);
+ytBody = "<html><script>var ytInitialData = {not json};</script></html>";
+check("unparseable YouTube data yields nothing", (await fetchPublicTracks(YT)).length === 0);
+ytBody = null;
+check("a YouTube network failure yields nothing", (await fetchPublicTracks(YT)).length === 0);
+
+const { showcaseTracks } = await import("../app/[username]/playlist-item");
+const shown = showcaseTracks("YOUTUBE", [
+  { position: 0, title: "a", artist: null, durationMs: null, previewUrl: "https://www.youtube.com/watch?v=MbWpPuuU1Vc" },
+  { position: 1, title: "b", artist: null, durationMs: null, previewUrl: "https://evil.example/watch?v=MbWpPuuU1Vc" },
+]);
+check("the page gets a video id, never the stored URL",
+  shown[0].videoId === "MbWpPuuU1Vc" && shown[0].previewUrl === null && shown[1].videoId === null,
+  JSON.stringify(shown));
 
 console.log(
   failures === 0

@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 
 import { Arc } from "@/app/[username]/arc";
 import { Deck } from "@/app/[username]/deck";
-import type { ShowcaseItem } from "@/app/[username]/playlist-item";
+import { showcaseTracks, type ShowcaseItem } from "@/app/[username]/playlist-item";
 import { providerLabel } from "@/components/provider-badge";
 import { getPublicProfile } from "@/lib/profile";
 import { surfaceLabel } from "@/lib/playlist-link";
@@ -43,7 +43,7 @@ export default async function EmbedPage({
     trackCount: playlist.trackCount,
     externalUrl: playlist.externalUrl,
     externalId: playlist.externalId,
-    tracks: playlist.tracks,
+    tracks: showcaseTracks(playlist.provider, playlist.tracks),
   }));
 
   if (items.length === 0) notFound();

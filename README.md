@@ -121,11 +121,20 @@ proxy.ts                          optimistic auth gate (Next 16's renamed middle
   `__NEXT_DATA__` blob that needs no account. That blob is internal and carries
   no compatibility promise, so `lib/playlist-tracks.ts` searches for the list
   rather than walking a fixed path, and every failure returns an empty array: a
-  shape change costs the song list and never the page. YouTube publishes no
-  such list, so its playlists keep the player alone. It cannot bring in songs:
-  oEmbed publishes a title and a thumbnail and nothing else. The connected-
+  shape change costs the song list and never the page. Songs are read when a
+  link is pasted as well as on refresh, so a new playlist never opens empty. The connected-
   account sync path still exists behind `/api/sync` for the day that approval
   comes through; nothing in the UI reaches it.
+- **YouTube's songs come from its playlist page**, whose `ytInitialData` lists
+  the first 100 with their video ids, and YouTube Music's art tracks among
+  them: their "Artist - Topic" channel is where the artist name comes from.
+  YouTube has no 30-second previews and its terms want the player visible, so
+  its embed stays and the rows drive it through the IFrame API instead of an
+  `<audio>` element: a tap loads that video, and when one ends the next row
+  plays. The player opens on the first song rather than on the list, because
+  some YouTube Music list ids load in the embed as "This video is unavailable".
+  The watch URL is stored in `previewUrl`, being what plays the row, which
+  spared a migration.
 - **A YouTube 401 is not taken at its word.** YouTube's oEmbed refuses some
   playlists anyone can open, answering 401 exactly as it does for a private
   one, so a perfectly public link was rejected as private. On a refusal the

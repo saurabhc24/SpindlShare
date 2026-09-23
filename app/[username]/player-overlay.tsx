@@ -5,7 +5,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { playlistEmbed } from "@/lib/playlist-embed";
 import { isYouTubeMusic } from "@/lib/playlist-link";
 
-import { mountEmbedPlayer } from "./embed-player";
+import { mountEmbedPlayer, type EmbedControl } from "./embed-player";
 import type { ShowcaseItem } from "./playlist-item";
 
 /**
@@ -58,11 +58,15 @@ export function PlayerOverlay({
   // plays for a visitor with its own session open, which most visitors do not
   // have -- so on this page it mostly sits there doing nothing.
   const playable = tracks.some((track) => track.previewUrl);
-  const embed =
-    item && !playable ? playlistEmbed(item.provider, item.externalId) : null;
+  // Memoised: a fresh object each render re-ran the mount effect and tore the player down.
+  const embed = useMemo(
+    () => (item && !playable ? playlistEmbed(item.provider, item.externalId) : null),
+    [item, playable]
+  );
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [current, setCurrent] = useState<number | null>(null);
+  const [blocked, setBlocked] = useState<Set<number>>(() => new Set());
 
   // A preview must never outlive the card that started it. Reset during
   // render, the way React prescribes for state derived from a prop, and stop
@@ -72,7 +76,20 @@ export function PlayerOverlay({
     setLastItemId(item?.id ?? null);
     setCurrent(null);
     setPlaying(false);
+    setBlocked(new Set());
   }
+
+  // YouTube has no previews, so its rows drive the embed. The refs let the
+  // player's long-lived callbacks read the list without remounting it.
+  const controlRef = useRef<EmbedControl | null>(null);
+  const drivenRef = useRef(false);
+  const tracksRef = useRef(tracks);
+  const currentRef = useRef(current);
+  useEffect(() => {
+    tracksRef.current = tracks;
+    currentRef.current = current;
+  }, [tracks, current]);
+
   useEffect(() => {
     const audio = audioRef.current;
     return () => {
@@ -85,8 +102,26 @@ export function PlayerOverlay({
 
   const playTrack = useCallback(
     (position: number) => {
-      const audio = audioRef.current;
       const track = tracks.find((t) => t.position === position);
+      if (track?.videoId) {
+        const control = controlRef.current;
+        // No player to drive, or one that refuses this video: YouTube itself still plays it.
+        if (!control || blocked.has(position)) {
+          window.open(`https://www.youtube.com/watch?v=${track.videoId}`, "_blank", "noopener");
+          return;
+        }
+        if (current === position) {
+          if (playing) control.pause();
+          else control.resume();
+          return;
+        }
+        drivenRef.current = true;
+        setCurrent(position);
+        control.play(track.videoId);
+        return;
+      }
+
+      const audio = audioRef.current;
       if (!audio || !track?.previewUrl) return;
 
       // A second tap on the playing row is a pause, which is what a row that
@@ -104,8 +139,30 @@ export function PlayerOverlay({
         setPlaying(false);
       });
     },
-    [current, tracks]
+    [blocked, current, playing, tracks]
   );
+
+  const handleControl = useCallback((control: EmbedControl | null) => {
+    controlRef.current = control;
+  }, []);
+
+  // Also follows YouTube's own playlist, so the row that is playing is marked either way.
+  const handleVideoChange = useCallback((videoId: string) => {
+    const track = tracksRef.current.find((t) => t.videoId === videoId);
+    setCurrent(track ? track.position : null);
+  }, []);
+
+  // Once a row has taken over, the player holds one video, so advancing is ours to do.
+  const handleVideoEnd = useCallback((reason: "ended" | "error") => {
+    const from = currentRef.current;
+    if (!drivenRef.current || from === null) return;
+    if (reason === "error") setBlocked((prev) => new Set(prev).add(from));
+    const next = tracksRef.current.find((t) => t.position > from && t.videoId);
+    if (next?.videoId && controlRef.current) {
+      setCurrent(next.position);
+      controlRef.current.play(next.videoId);
+    }
+  }, []);
 
   const handlePlayingChange = useCallback((next: boolean) => {
     setPlaying(next);
@@ -124,6 +181,9 @@ export function PlayerOverlay({
     // an error boundary. So the script gets a plain div React never renders.
     const mount = document.createElement("div");
     host.appendChild(mount);
+    // Opened on a song of ours, the player holds one video, so advancing is ours from the start.
+    const firstVideoId = tracks.find((t) => t.videoId)?.videoId ?? undefined;
+    drivenRef.current = Boolean(firstVideoId);
 
     const teardown = mountEmbedPlayer({
       provider: item.provider,
@@ -132,6 +192,10 @@ export function PlayerOverlay({
       height: embed.height,
       onPlayingChange: handlePlayingChange,
       fallbackSrc: embed.src,
+      videoId: firstVideoId,
+      onControl: handleControl,
+      onVideoChange: handleVideoChange,
+      onVideoEnd: handleVideoEnd,
     });
 
     return () => {
@@ -140,7 +204,7 @@ export function PlayerOverlay({
       // goes with it, and the next playlist starts from an empty host.
       mount.remove();
     };
-  }, [item, embed, handlePlayingChange]);
+  }, [item, embed, tracks, handlePlayingChange, handleControl, handleVideoChange, handleVideoEnd]);
 
   useEffect(() => {
     if (!item) return;
@@ -577,7 +641,7 @@ export function PlayerOverlay({
                 far fewer songs than the playlist holds. Saying so, and offering
                 the surface that has them all, beats silently under-representing
                 someone's playlist. */}
-            {item && isYouTubeMusic(item.externalUrl) && (
+            {item && tracks.length === 0 && isYouTubeMusic(item.externalUrl) && (
               <p
                 style={{
                   margin: "6px 4px 0",
@@ -658,7 +722,7 @@ export function PlayerOverlay({
           >
             {tracks.map((track) => {
               const isCurrent = current === track.position;
-              const canPlay = Boolean(track.previewUrl);
+              const canPlay = Boolean(track.previewUrl || track.videoId);
               return (
               <li
                 key={track.position}
@@ -730,8 +794,8 @@ export function PlayerOverlay({
                     </span>
                   )}
                 </span>
-                {/* YouTube's playlistItems carries no duration, so the column
-                    is simply absent there rather than showing a dash. */}
+                {/* Absent where the provider gives no duration, rather than
+                    showing a dash. */}
                 {track.durationMs != null && (
                   <span
                     style={{

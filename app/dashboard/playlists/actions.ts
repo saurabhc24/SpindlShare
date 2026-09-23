@@ -10,6 +10,7 @@ import {
   resolvePlaylistLink,
 } from "@/lib/playlist-link";
 import { fetchPublicTracks } from "@/lib/playlist-tracks";
+import type { NormalizedTrack } from "@/lib/providers/types";
 import { prisma } from "@/lib/prisma";
 import { RATE_LIMITS, rateLimitAll } from "@/lib/rate-limit";
 
@@ -109,8 +110,10 @@ export async function addPlaylistLink(
     _max: { sortOrder: true },
   });
 
+  let createdId: string;
   try {
-    await prisma.playlist.create({
+    ({ id: createdId } = await prisma.playlist.create({
+      select: { id: true },
       data: {
         userId: user.id,
         // No connected account: this playlist was not imported from one, and
@@ -124,7 +127,7 @@ export async function addPlaylistLink(
         visible: true,
         sortOrder: (highest._max.sortOrder ?? 0) + SORT_ORDER_STEP,
       },
-    });
+    }));
   } catch (error) {
     // Lost a race against another tab adding the same link.
     if (isUniqueConstraintError(error)) {
@@ -133,10 +136,34 @@ export async function addPlaylistLink(
     throw error;
   }
 
+  // Songs now rather than at the next refresh; a list that can't be read leaves the playlist as added.
+  const tracks = await fetchPublicTracks(link);
+  if (tracks.length > 0) {
+    await replaceTracks(createdId, tracks);
+    await prisma.playlist.update({ where: { id: createdId }, data: { trackCount: tracks.length } });
+  }
+
   revalidatePath(`/${profile.usernameNormalized}`);
   revalidatePath("/dashboard");
 
   return { success: `Added "${resolved.title}".` };
+}
+
+/** Replaced wholesale: position is the identity, so a reordered playlist would keep stale rows. */
+async function replaceTracks(playlistId: string, tracks: NormalizedTrack[]) {
+  await prisma.$transaction([
+    prisma.track.deleteMany({ where: { playlistId } }),
+    prisma.track.createMany({
+      data: tracks.map((track) => ({
+        playlistId,
+        position: track.position,
+        title: track.title,
+        artist: track.artist,
+        durationMs: track.durationMs,
+        previewUrl: track.previewUrl ?? null,
+      })),
+    }),
+  ]);
 }
 
 export type RefreshResult = {
@@ -222,21 +249,7 @@ export async function refreshPlaylistLinks(): Promise<
     // read, which must not wipe a list stored on an earlier run.
     const tracks = await fetchPublicTracks(link);
     if (tracks.length > 0) {
-      // Replaced wholesale: position is the identity, so a reordered playlist
-      // would otherwise keep rows from its previous shape.
-      await prisma.$transaction([
-        prisma.track.deleteMany({ where: { playlistId: playlist.id } }),
-        prisma.track.createMany({
-          data: tracks.map((track) => ({
-            playlistId: playlist.id,
-            position: track.position,
-            title: track.title,
-            artist: track.artist,
-            durationMs: track.durationMs,
-            previewUrl: track.previewUrl ?? null,
-          })),
-        }),
-      ]);
+      await replaceTracks(playlist.id, tracks);
       songs += tracks.length;
     }
 

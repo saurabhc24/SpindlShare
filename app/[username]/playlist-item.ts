@@ -16,6 +16,8 @@ export type ShowcaseTrack = {
   durationMs: number | null;
   /** A 30-second MP3, where the provider offers one. Null means unplayable. */
   previewUrl: string | null;
+  /** The YouTube video the row plays through the embed. Null elsewhere. */
+  videoId: string | null;
 };
 
 export type ShowcaseItem = {
@@ -31,3 +33,14 @@ export type ShowcaseItem = {
   /** Captured at the owner's last sync. Empty when none have been stored yet. */
   tracks: ShowcaseTrack[];
 };
+
+type StoredTrack = Omit<ShowcaseTrack, "videoId">;
+
+/** YouTube rows store their watch URL as the preview; the page wants the video id instead. */
+export function showcaseTracks(provider: MusicProvider, tracks: StoredTrack[]): ShowcaseTrack[] {
+  return tracks.map((track) => {
+    if (provider !== "YOUTUBE") return { ...track, videoId: null };
+    const id = /^https:\/\/www\.youtube\.com\/watch\?v=([A-Za-z0-9_-]{11})$/.exec(track.previewUrl ?? "");
+    return { ...track, previewUrl: null, videoId: id ? id[1] : null };
+  });
+}

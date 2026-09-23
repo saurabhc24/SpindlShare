@@ -234,8 +234,8 @@ model Track {
   artist     String?
   /// Null for YouTube, whose playlistItems response omits it.
   durationMs Int?
-  /// A 30-second MP3 the provider serves to anyone. Null when it offers none,
-  /// which is what decides whether a row is playable on the public page.
+  /// A 30-second MP3 the provider serves to anyone, or for YouTube the video's
+  /// watch URL. Null when there is neither, which makes the row unplayable.
   previewUrl String?
 
   playlist Playlist @relation(fields: [playlistId], references: [id], onDelete: Cascade)

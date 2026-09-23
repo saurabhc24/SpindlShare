@@ -11,7 +11,7 @@ import { providerLabel } from "@/components/provider-badge";
 import { asPlaylistLayout } from "@/app/dashboard/settings/layouts";
 
 import { DeckProfile } from "./deck-profile";
-import { type ShowcaseItem } from "./playlist-item";
+import { showcaseTracks, type ShowcaseItem } from "./playlist-item";
 
 // Short ISR window as a safety net; dashboard mutations call revalidatePath on
 // this route so edits show up immediately rather than waiting this out.
@@ -103,7 +103,7 @@ export default async function PublicProfilePage(
     trackCount: playlist.trackCount,
     externalUrl: playlist.externalUrl,
     externalId: playlist.externalId,
-    tracks: playlist.tracks,
+    tracks: showcaseTracks(playlist.provider, playlist.tracks),
   }));
 
   if (items.length > 0) {

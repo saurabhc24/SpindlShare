@@ -36,6 +36,17 @@ type SpotifyIFrameApi = {
 
 type YouTubePlayer = {
   destroy: () => void;
+  loadVideoById: (videoId: string) => void;
+  playVideo: () => void;
+  pauseVideo: () => void;
+  getVideoData?: () => { video_id?: string };
+};
+
+/** What the song list can ask of the player: the YouTube rows are its controls. */
+export type EmbedControl = {
+  play: (videoId: string) => void;
+  pause: () => void;
+  resume: () => void;
 };
 
 declare global {
@@ -47,7 +58,7 @@ declare global {
         el: HTMLElement,
         config: Record<string, unknown>
       ) => YouTubePlayer;
-      PlayerState: { PLAYING: number };
+      PlayerState: { PLAYING: number; ENDED: number };
     };
   }
 }
@@ -95,6 +106,14 @@ export type MountOptions = {
   onPlayingChange: (playing: boolean) => void;
   /** Plain embed URL, used if the control API never arrives. */
   fallbackSrc: string;
+  /** YouTube only: open on this video rather than the list, which some list ids fail to load. */
+  videoId?: string;
+  /** YouTube only: the player's controls once it is ready, and null on teardown. */
+  onControl?: (control: EmbedControl | null) => void;
+  /** YouTube only: the video now loaded, so the list can mark its row. */
+  onVideoChange?: (videoId: string) => void;
+  /** YouTube only: a video finished, or refused to play here. */
+  onVideoEnd?: (reason: "ended" | "error") => void;
 };
 
 /** How long to wait for a provider script before falling back to a bare iframe. */
@@ -137,6 +156,10 @@ export function mountEmbedPlayer({
   height,
   onPlayingChange,
   fallbackSrc,
+  videoId,
+  onControl,
+  onVideoChange,
+  onVideoEnd,
 }: MountOptions): () => void {
   let disposed = false;
   let controller: Controller | null = null;
@@ -179,10 +202,28 @@ export function mountEmbedPlayer({
         const player = new YT.Player(container, {
           height: String(height),
           width: "100%",
-          playerVars: { list: externalId, listType: "playlist" },
+          ...(videoId
+            ? { videoId }
+            : { playerVars: { list: externalId, listType: "playlist" } }),
           events: {
+            onReady: () => {
+              if (disposed) return;
+              onControl?.({
+                play: (videoId) => player.loadVideoById(videoId),
+                pause: () => player.pauseVideo(),
+                resume: () => player.playVideo(),
+              });
+            },
             onStateChange: (event: { data: number }) => {
-              if (!disposed) onPlayingChange(event.data === YT.PlayerState.PLAYING);
+              if (disposed) return;
+              onPlayingChange(event.data === YT.PlayerState.PLAYING);
+              const videoId = player.getVideoData?.().video_id;
+              if (videoId) onVideoChange?.(videoId);
+              if (event.data === YT.PlayerState.ENDED) onVideoEnd?.("ended");
+            },
+            // 100, 101 and 150: removed, or its owner forbids playing it off YouTube.
+            onError: () => {
+              if (!disposed) onVideoEnd?.("error");
             },
           },
         });
@@ -197,6 +238,7 @@ export function mountEmbedPlayer({
     disposed = true;
     window.clearTimeout(fallbackTimer);
     onPlayingChange(false);
+    onControl?.(null);
     try {
       controller?.destroy?.();
     } catch {
