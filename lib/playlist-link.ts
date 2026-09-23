@@ -235,6 +235,9 @@ export async function resolvePlaylistLink(
   // or never existed. None of those are distinguishable from outside, and the
   // user's next step is the same for all three.
   if (response.status === 401 || response.status === 403 || response.status === 404) {
+    // YouTube's oEmbed also 401s some public playlists; their page still says what they are.
+    const page = link.provider === "YOUTUBE" ? await readYouTubePage(link.externalId) : null;
+    if (page) return page;
     throw new PlaylistLinkError(
       "That playlist is private or doesn't exist. Only public playlists can be added by link."
     );
@@ -266,4 +269,59 @@ export async function resolvePlaylistLink(
       : null;
 
   return { title, coverImageUrl: thumbnail };
+}
+
+/** The og tags sit ~760KB into a playlist page; far past that is not one. */
+const PAGE_MAX_BYTES = 3_000_000;
+
+function decodeEntities(value: string): string {
+  return value
+    .replace(/&#x([0-9a-f]+);/gi, (_, hex) => String.fromCodePoint(parseInt(hex, 16)))
+    .replace(/&#(\d+);/g, (_, dec) => String.fromCodePoint(Number(dec)))
+    .replace(/&quot;/g, '"')
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&amp;/g, "&");
+}
+
+function metaTag(html: string, property: string): string | null {
+  const match = new RegExp(`<meta property="${property}" content="([^"]*)"`).exec(html);
+  return match ? decodeEntities(match[1]).trim() : null;
+}
+
+/**
+ * Title and cover from the public playlist page, or null if it isn't one.
+ * A missing or private playlist renders with og:url "undefined", so og:url must name this list.
+ */
+async function readYouTubePage(id: string): Promise<ResolvedPlaylist | null> {
+  if (!YOUTUBE_ID.test(id)) return null;
+  let html: string;
+  try {
+    const response = await fetch(`https://www.youtube.com/playlist?list=${id}`, {
+      signal: AbortSignal.timeout(RESOLVE_TIMEOUT_MS),
+      cache: "no-store",
+      headers: {
+        "User-Agent": "Mozilla/5.0 (compatible; SpindlShare/1.0; +https://spindlshare.vercel.app)",
+        "Accept-Language": "en",
+        Accept: "text/html",
+      },
+    });
+    if (!response.ok) return null;
+    if (Number(response.headers.get("content-length") ?? 0) > PAGE_MAX_BYTES) return null;
+    html = await response.text();
+    if (html.length > PAGE_MAX_BYTES) return null;
+  } catch {
+    return null;
+  }
+
+  const url = metaTag(html, "og:url");
+  if (!url || !url.endsWith(`list=${id}`)) return null;
+  const title = metaTag(html, "og:title");
+  if (!title || title === "undefined") return null;
+
+  const image = metaTag(html, "og:image");
+  return {
+    title: title.slice(0, 200),
+    coverImageUrl: image && /^https:\/\/i\d?\.ytimg\.com\//i.test(image) ? image : null,
+  };
 }

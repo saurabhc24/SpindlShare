@@ -126,6 +126,12 @@ proxy.ts                          optimistic auth gate (Next 16's renamed middle
   oEmbed publishes a title and a thumbnail and nothing else. The connected-
   account sync path still exists behind `/api/sync` for the day that approval
   comes through; nothing in the UI reaches it.
+- **A YouTube 401 is not taken at its word.** YouTube's oEmbed refuses some
+  playlists anyone can open, answering 401 exactly as it does for a private
+  one, so a perfectly public link was rejected as private. On a refusal the
+  resolver reads the playlist page's `og:` tags instead, and accepts them only
+  when `og:url` names the same list: a missing or private playlist renders
+  there as the literal string "undefined".
 - **Tokens are encrypted at rest** (AES-256-GCM) rather than stored in plaintext.
 - **`@prisma/adapter-pg` over the Neon serverless driver**, so the same code path
   works against local Postgres and Neon.

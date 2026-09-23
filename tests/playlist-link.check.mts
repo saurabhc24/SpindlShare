@@ -238,6 +238,47 @@ check(
     playlistEmbed("OTHER", "https://music.amazon.com/playlists/B07QK2LH4H") === null
 );
 
+// YouTube's oEmbed 401s some public playlists, so the page is read instead. Stubbed: no network.
+console.log("\nYouTube page fallback");
+const { resolvePlaylistLink } = await import("../lib/playlist-link");
+const realFetch = globalThis.fetch;
+const OK_PAGE = `<meta property="og:url" content="http://www.youtube.com/playlist?list=${YT_ID}"><meta property="og:title" content="Rock &amp; Roll &#39;99"><meta property="og:image" content="https://i.ytimg.com/vi/abc/hqdefault.jpg?a=1&amp;b=2">`;
+const MISSING_PAGE = `<meta property="og:url" content="undefined"><meta property="og:title" content="undefined">`;
+async function resolveWith(page: string, image?: string) {
+  const body = image ? page.replace(/og:image" content="[^"]*"/, `og:image" content="${image}"`) : page;
+  globalThis.fetch = (async (input: string | URL) =>
+    String(input).includes("/oembed")
+      ? new Response("Unauthorized", { status: 401 })
+      : new Response(body, { status: 200 })) as typeof fetch;
+  try {
+    return await resolvePlaylistLink(parsePlaylistLink(`https://youtube.com/playlist?list=${YT_ID}&si=x`)!);
+  } catch (e) {
+    return (e as Error).message;
+  } finally {
+    globalThis.fetch = realFetch;
+  }
+}
+const fromPage = await resolveWith(OK_PAGE);
+check(
+  "a public playlist oEmbed refuses is read from its page",
+  typeof fromPage === "object" && fromPage.title === "Rock & Roll '99" &&
+    fromPage.coverImageUrl === "https://i.ytimg.com/vi/abc/hqdefault.jpg?a=1&b=2",
+  JSON.stringify(fromPage)
+);
+check(
+  "a missing playlist is still refused",
+  typeof (await resolveWith(MISSING_PAGE)) === "string"
+);
+check(
+  "a page naming a different list is refused",
+  typeof (await resolveWith(OK_PAGE.replace(`list=${YT_ID}`, "list=PLotherotherother1"))) === "string"
+);
+const offHost = await resolveWith(OK_PAGE, "https://evil.example/x.jpg");
+check(
+  "a cover from outside YouTube's image host is dropped",
+  typeof offHost === "object" && offHost.coverImageUrl === null
+);
+
 console.log(
   failures === 0 ? "\nAll playlist-link checks passed." : `\n${failures} check(s) FAILED.`
 );
