@@ -9,7 +9,7 @@ import {
   parsePlaylistLink,
   resolvePlaylistLink,
 } from "@/lib/playlist-link";
-import { fetchPublicTracks } from "@/lib/playlist-tracks";
+import { fetchPublicPlaylist } from "@/lib/playlist-tracks";
 import type { NormalizedTrack } from "@/lib/providers/types";
 import { prisma } from "@/lib/prisma";
 import { RATE_LIMITS, rateLimitAll } from "@/lib/rate-limit";
@@ -137,10 +137,11 @@ export async function addPlaylistLink(
   }
 
   // Songs now rather than at the next refresh; a list that can't be read leaves the playlist as added.
-  const tracks = await fetchPublicTracks(link);
-  if (tracks.length > 0) {
-    await replaceTracks(createdId, tracks);
-    await prisma.playlist.update({ where: { id: createdId }, data: { trackCount: tracks.length } });
+  const { tracks, total } = await fetchPublicPlaylist(link);
+  if (tracks.length > 0) await replaceTracks(createdId, tracks);
+  const count = total ?? (tracks.length || null);
+  if (count !== null) {
+    await prisma.playlist.update({ where: { id: createdId }, data: { trackCount: count } });
   }
 
   revalidatePath(`/${profile.usernameNormalized}`);
@@ -247,17 +248,19 @@ export async function refreshPlaylistLinks(): Promise<
 
     // The songs, from the provider's own embed. Empty means they could not be
     // read, which must not wipe a list stored on an earlier run.
-    const tracks = await fetchPublicTracks(link);
+    const { tracks, total } = await fetchPublicPlaylist(link);
     if (tracks.length > 0) {
       await replaceTracks(playlist.id, tracks);
       songs += tracks.length;
     }
+    // The playlist's real size: both sources stop at 100 songs, and the page says how many more there are.
+    const count = total ?? (tracks.length || null);
 
     const changed =
       resolved.title !== playlist.title ||
       (resolved.coverImageUrl ?? null) !== playlist.coverImageUrl ||
       // The count is what the lifted card shows, so it follows the list.
-      (tracks.length > 0 && tracks.length !== playlist.trackCount);
+      (count !== null && count !== playlist.trackCount);
     if (!changed) continue;
 
     await prisma.playlist.update({
@@ -265,7 +268,7 @@ export async function refreshPlaylistLinks(): Promise<
       data: {
         title: resolved.title,
         coverImageUrl: resolved.coverImageUrl,
-        ...(tracks.length > 0 ? { trackCount: tracks.length } : {}),
+        ...(count !== null ? { trackCount: count } : {}),
         lastSyncedAt: new Date(),
       },
     });

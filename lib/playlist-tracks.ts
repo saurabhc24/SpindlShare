@@ -71,11 +71,36 @@ function findTrackList(node: unknown, depth = 0): EmbedTrack[] | null {
 export async function fetchPublicTracks(
   link: ParsedPlaylistLink
 ): Promise<NormalizedTrack[]> {
-  if (link.provider === "YOUTUBE") return fetchYouTubeTracks(link.externalId);
-  if (link.provider !== "SPOTIFY") return [];
-  if (!/^[A-Za-z0-9]{16,40}$/.test(link.externalId)) return [];
+  return (await fetchPublicPlaylist(link)).tracks;
+}
 
-  const html = await fetchPage(`https://open.spotify.com/embed/playlist/${link.externalId}`);
+export type PublicPlaylist = {
+  tracks: NormalizedTrack[];
+  /** The playlist's real size, which can exceed the songs readable here. Null when unknown. */
+  total: number | null;
+};
+
+/** Both public sources stop at 100 songs, so the true size is read separately. */
+export async function fetchPublicPlaylist(link: ParsedPlaylistLink): Promise<PublicPlaylist> {
+  if (link.provider === "YOUTUBE") return fetchYouTubePlaylist(link.externalId);
+  if (link.provider !== "SPOTIFY" || !/^[A-Za-z0-9]{16,40}$/.test(link.externalId)) {
+    return { tracks: [], total: null };
+  }
+  const [tracks, page] = await Promise.all([
+    fetchSpotifyTracks(link.externalId),
+    fetchPage(`https://open.spotify.com/playlist/${link.externalId}`),
+  ]);
+  const count = page && /<meta name="music:song_count" content="(\d{1,6})"/.exec(page);
+  return { tracks, total: plausibleTotal(count ? Number(count[1]) : null, tracks.length) };
+}
+
+/** A total smaller than the songs actually read is wrong, so it is dropped rather than shown. */
+function plausibleTotal(total: number | null, read: number): number | null {
+  return total !== null && Number.isInteger(total) && total >= read && total > 0 ? total : null;
+}
+
+async function fetchSpotifyTracks(id: string): Promise<NormalizedTrack[]> {
+  const html = await fetchPage(`https://open.spotify.com/embed/playlist/${id}`);
   if (!html) return [];
 
   const match = /<script id="__NEXT_DATA__"[^>]*>([\s\S]*?)<\/script>/.exec(html);
@@ -230,18 +255,19 @@ function youTubeEntry(key: string, raw: unknown): NormalizedTrack | null {
  * The songs on a public YouTube or YouTube Music playlist, read from its page's
  * ytInitialData. That page lists the first 100; the rest need a signed request.
  */
-async function fetchYouTubeTracks(id: string): Promise<NormalizedTrack[]> {
-  if (!/^[A-Za-z0-9_-]{12,64}$/.test(id)) return [];
+async function fetchYouTubePlaylist(id: string): Promise<PublicPlaylist> {
+  const none = { tracks: [], total: null };
+  if (!/^[A-Za-z0-9_-]{12,64}$/.test(id)) return none;
   const html = await fetchPage(`https://www.youtube.com/playlist?list=${id}`);
-  if (!html) return [];
+  if (!html) return none;
 
   const match = /var ytInitialData = (\{[\s\S]*?\});<\/script>/.exec(html);
-  if (!match) return [];
+  if (!match) return none;
   let data: unknown;
   try {
     data = JSON.parse(match[1]);
   } catch {
-    return [];
+    return none;
   }
 
   // Only the page body: the header and sidebar can carry lockups of their own.
@@ -259,7 +285,11 @@ async function fetchYouTubeTracks(id: string): Promise<NormalizedTrack[]> {
     }
   };
   walk(body, 0);
-  return tracks;
+
+  // The header's "57 videos", which counts songs past the first page and removed ones alike.
+  const stat = /"text":"([\d,]{1,9})"\},\{"text":" videos?"/.exec(html);
+  const total = stat ? Number(stat[1].replace(/,/g, "")) : null;
+  return { tracks, total: plausibleTotal(total, tracks.length) };
 }
 
 /** Kept so the caller can tell "no songs" from "we could not look". */

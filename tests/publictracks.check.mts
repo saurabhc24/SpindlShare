@@ -12,6 +12,7 @@ type FetchArgs = Parameters<typeof fetch>;
 
 let body: string | null = null;
 let ytBody: string | null = null;
+let spotifyPage = "";
 let status = 200;
 const requested: string[] = [];
 
@@ -26,6 +27,10 @@ globalThis.fetch = (async (input: FetchArgs[0], init?: FetchArgs[1]) => {
       headers: { "Content-Type": "text/html" },
     });
   }
+  // The full playlist page, read only for its song count.
+  if (url.startsWith("https://open.spotify.com/playlist/")) {
+    return new Response(spotifyPage, { status: 200, headers: { "Content-Type": "text/html" } });
+  }
   if (url.startsWith("https://www.youtube.com/playlist?list=")) {
     requested.push(url);
     if (ytBody === null) throw new Error("network down");
@@ -34,7 +39,7 @@ globalThis.fetch = (async (input: FetchArgs[0], init?: FetchArgs[1]) => {
   return realFetch(input, init);
 }) as typeof fetch;
 
-const { fetchPublicTracks } = await import("../lib/playlist-tracks");
+const { fetchPublicTracks, fetchPublicPlaylist } = await import("../lib/playlist-tracks");
 const { parsePlaylistLink } = await import("../lib/playlist-link");
 
 let failures = 0;
@@ -199,6 +204,12 @@ check("the watch URL is stored as what plays it",
   tracks[0]?.previewUrl === "https://www.youtube.com/watch?v=MbWpPuuU1Vc");
 check("positions are contiguous after skips", tracks.map((t) => t.position).join() === "0,1");
 
+ytBody = ytPage({ list: [lockup("MbWpPuuU1Vc", "Bole Chudiyan", "Jatin Lalit - Topic", "6:49")] }).replace(
+  "<script>", `<script>var header = {"stats":[{"runs":[{"text":"1,234"},{"text":" videos"}]}]};`);
+let whole = await fetchPublicPlaylist(YT);
+check("YouTube's real size comes from the page header", whole.total === 1234 && whole.tracks.length === 1,
+  JSON.stringify({ total: whole.total, read: whole.tracks.length }));
+
 ytBody = ytPage({ list: [{ playlistVideoRenderer: {
   videoId: "1nrKhy0z6JI", title: { runs: [{ text: "Kal Ho Naa Ho" }] },
   shortBylineText: { runs: [{ text: "Sonu Nigam - Topic" }] }, lengthSeconds: "321",
@@ -224,6 +235,19 @@ const shown = showcaseTracks("YOUTUBE", [
 check("the page gets a video id, never the stored URL",
   shown[0].videoId === "MbWpPuuU1Vc" && shown[0].previewUrl === null && shown[1].videoId === null,
   JSON.stringify(shown));
+
+// Both sources stop at 100 songs, so the player needs the real size to say "Showing 100 of 279".
+console.log("\nThe playlist's real size");
+body = page([song("One", "A", 1000), song("Two", "B", 2000)]);
+spotifyPage = `<meta name="music:song_count" content="279"/>`;
+whole = await fetchPublicPlaylist(LINK);
+check("Spotify's real size comes from its playlist page", whole.total === 279 && whole.tracks.length === 2,
+  JSON.stringify({ total: whole.total, read: whole.tracks.length }));
+spotifyPage = `<meta name="music:song_count" content="1"/>`;
+check("a size smaller than the songs read is dropped", (await fetchPublicPlaylist(LINK)).total === null);
+spotifyPage = "<html>no count</html>";
+whole = await fetchPublicPlaylist(LINK);
+check("no count leaves the size unknown, not zero", whole.total === null && whole.tracks.length === 2);
 
 console.log(
   failures === 0

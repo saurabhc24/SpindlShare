@@ -121,7 +121,11 @@ proxy.ts                          optimistic auth gate (Next 16's renamed middle
   `__NEXT_DATA__` blob that needs no account. That blob is internal and carries
   no compatibility promise, so `lib/playlist-tracks.ts` searches for the list
   rather than walking a fixed path, and every failure returns an empty array: a
-  shape change costs the song list and never the page. Songs are read when a
+  shape change costs the song list and never the page. The embed stops at 100
+  songs, and nothing without a login goes further (the Web API refuses app-only
+  tokens for playlist tracks), so the count is read from the playlist page's
+  `music:song_count` instead: the player says "279 tracks" and "Showing 100 of
+  279" rather than passing the first 100 off as the lot. Songs are read when a
   link is pasted as well as on refresh, so a new playlist never opens empty. The connected-
   account sync path still exists behind `/api/sync` for the day that approval
   comes through; nothing in the UI reaches it.
