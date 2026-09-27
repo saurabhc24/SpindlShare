@@ -301,7 +301,7 @@ async function readYouTubePage(id: string): Promise<ResolvedPlaylist | null> {
       signal: AbortSignal.timeout(RESOLVE_TIMEOUT_MS),
       cache: "no-store",
       headers: {
-        "User-Agent": "Mozilla/5.0 (compatible; SpindlShare/1.0; +https://spindlshare.vercel.app)",
+        "User-Agent": "Mozilla/5.0 (compatible; SpindlShare/1.0; +https://spindlshare.com)",
         "Accept-Language": "en",
         Accept: "text/html",
       },

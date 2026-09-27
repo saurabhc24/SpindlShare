@@ -161,7 +161,7 @@ async function fetchPage(url: string): Promise<string | null> {
       cache: "no-store",
       headers: {
         "User-Agent":
-          "Mozilla/5.0 (compatible; SpindlShare/1.0; +https://spindlshare.vercel.app)",
+          "Mozilla/5.0 (compatible; SpindlShare/1.0; +https://spindlshare.com)",
         "Accept-Language": "en",
         Accept: "text/html",
       },
