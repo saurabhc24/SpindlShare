@@ -47,6 +47,7 @@ export async function generateMetadata(
   return {
     title,
     description,
+    alternates: { canonical: `/${data.profile.usernameNormalized}` },
     openGraph: { title, description, type: "profile" },
     twitter: { card: "summary_large_image", title, description },
   };

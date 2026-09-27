@@ -1,9 +1,12 @@
+import type { Metadata } from "next";
 import type { CSSProperties } from "react";
 
 import { SignInOptions } from "@/components/sign-in-options";
 
 import { HalftoneField } from "./halftone-field";
 import { LandingActions } from "./landing-actions";
+
+export const metadata: Metadata = { alternates: { canonical: "/" } };
 
 /**
  * Where the deck actually sits inside turntable_image.png, measured from the

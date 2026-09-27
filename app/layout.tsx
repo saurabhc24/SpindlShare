@@ -2,11 +2,16 @@ import type { Metadata, Viewport } from "next";
 import { Analytics } from "@vercel/analytics/next";
 
 import { showcaseFonts } from "@/app/fonts";
+import { appBaseUrl } from "@/lib/app-url";
 
 import { VisitBeacon } from "./visit-beacon";
 import "./globals.css";
 
+const base = appBaseUrl();
+
 export const metadata: Metadata = {
+  // Two domains serve the same pages, so canonical and share URLs resolve against the primary one.
+  ...(URL.canParse(base) ? { metadataBase: new URL(base) } : {}),
   title: {
     default: "SpindlShare",
     template: "%s | SpindlShare",

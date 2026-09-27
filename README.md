@@ -2,7 +2,7 @@
 
 **Everything you've got spinning.** A shareable shelf for your music playlists —
 connect Spotify and YouTube, pick what you want to show, and share it all from
-one link (`spindlshare.vercel.app/yourname`).
+one link (`spindlshare.com/yourname`).
 
 Built with Next.js 16 (App Router) + TypeScript, Prisma 7 + Postgres, and
 Auth.js v5. Deploys to Vercel.
@@ -512,9 +512,11 @@ prefix' or 'Site,' property" — which means a DNS TXT record on the root domain
 `vercel.app` is Vercel's zone, so there is no record to add and no ownership to
 prove; an HTML-file URL-prefix verification is accepted by Search Console and
 then rejected by the OAuth review with "the website of your home page URL is not
-registered to you". A custom domain is the only way past it. Until then the
-workable state is Production-but-unverified: the warning and the 100-user cap
-stay, the 7-day token expiry does not.
+registered to you". A custom domain is the only way past it, which
+`spindlshare.com` now is: verifying it as a Domain property (a TXT record at
+Hostinger) is what unblocks the review. Until that passes, the workable state is
+Production-but-unverified: the warning and the 100-user cap stay, the 7-day token
+expiry does not.
 
 The sharper consequence is that while the OAuth consent screen is in **Testing**,
 Google issues refresh tokens that expire after **7 days** -- with an exception
@@ -548,6 +550,28 @@ is public and reports exactly what Auth.js will send:
 ```bash
 curl -s https://your-app/api/auth/providers
 ```
+
+### Domains
+
+`spindlshare.com` is the address; `www.spindlshare.com` redirects to it (308),
+and `spindlshare.vercel.app` keeps serving the same deployment **without**
+redirecting. That last part is the backup: a domain that lapses stops pointing
+anywhere we control, so nothing can redirect *from* it afterwards, and a
+vercel.app that forwarded to it would die with it. The Vercel address instead
+stays a complete, working copy of the site.
+
+`NEXT_PUBLIC_APP_URL` decides which of the two is the real one: share links,
+the address in the footer, and every page's `<link rel="canonical">` are built
+from it, so search engines index one copy rather than two. Sign-in follows
+whichever host the visitor is on (`AUTH_URL` is deliberately unset), which is why
+Google's console lists the login callback for both.
+
+If `spindlshare.com` is ever let go, the fallback is one variable: set
+`NEXT_PUBLIC_APP_URL` back to `https://spindlshare.vercel.app` and redeploy (it
+is inlined at build time, so a redeploy is required). Doing it before the expiry
+date also allows a Vercel redirect from `.com` to `.vercel.app`, so links already
+shared keep working until the registrar takes the domain back. Registered at
+Hostinger, expiring 2027-09-27; auto-renew is the real protection.
 
 ### Checking a deploy
 
