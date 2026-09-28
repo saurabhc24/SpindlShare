@@ -1278,11 +1278,8 @@
 .backBase {
   position: relative;
   isolation: isolate;
-  margin-top: clamp(40px, 6vw, 90px);
-  padding-top: clamp(80px, 10vw, 150px);
-}
-.backBase .footer {
   margin-top: 0;
+  padding-top: clamp(80px, 10vw, 150px);
 }
 .cymatics {
   position: absolute;
@@ -1294,10 +1291,6 @@
   display: block;
   width: 100%;
   height: 100%;
-}
-.backBase .footer {
-  position: relative;
-  text-shadow: 0 0 8px var(--ruby), 0 0 16px var(--ruby), 0 0 3px var(--ruby);
 }
 
 /* --- the 3D changer ------------------------------------------------------ */

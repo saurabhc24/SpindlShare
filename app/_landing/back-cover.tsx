@@ -41,24 +41,22 @@ export function BackCover() {
         </div>
       </div>
 
-      <div className={styles.backBase}>
-        <Cymatics />
       <footer className={styles.wrap}>
         <div className={styles.footer}>
           <span>&copy; {new Date().getFullYear()} SpindlShare</span>
           <nav aria-label="Legal" className={styles.footerLinks}>
             <Link href="/privacy">Privacy Policy</Link>
             <Link href="/terms">Terms of Service</Link>
-            <Link href="/login">
-              Sign in
-            </Link>
+            <Link href="/login">Sign in</Link>
           </nav>
         </div>
       </footer>
 
-      <p className={`${styles.wordmark} ${styles.giantMark}`} aria-hidden="true">
-        SpindlShare
-      </p>
+      <div className={styles.backBase}>
+        <Cymatics />
+        <p className={`${styles.wordmark} ${styles.giantMark}`} aria-hidden="true">
+          SpindlShare
+        </p>
       </div>
     </section>
   );
