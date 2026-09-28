@@ -59,7 +59,9 @@ prefix and clean up after themselves.
 ## How it's put together
 
 ```
-app/page.tsx                      landing page
+app/page.tsx                      home page: the record changer, built from a real shelf
+app/_landing/                     its sections, and the claimed-name store they share
+app/signup/page.tsx               the original landing page, where every "Claim your link" leads
 app/halftone-field.tsx            its animated backdrop, shared with the auth screens
 app/landing-actions.tsx           the sign-in card, and the links that open it
 app/[username]/                   public profile page + OG image
@@ -154,7 +156,7 @@ proxy.ts                          optimistic auth gate (Next 16's renamed middle
 - **`proxy.ts` only checks for a cookie.** It runs on every dashboard request, so
   it stays a cheap optimistic gate; the authoritative check lives in `lib/dal.ts`,
   next to the data it protects.
-- **Signing in opens a card, but `/login` is still a real page.** The landing
+- **Signing in opens a card, but `/login` is still a real page.** The `/signup`
   page's links intercept their own click and open a `<dialog>`; if that fails,
   or JavaScript never arrives, the click is never intercepted and the browser
   follows the href. `/login` is not merely that fallback — the proxy sends every
@@ -162,6 +164,43 @@ proxy.ts                          optimistic auth gate (Next 16's renamed middle
   reports its own errors there, which a card that never receives an `?error=`
   cannot show. The methods themselves live in one component used by both, so a
   provider cannot be added to one and missed on the other.
+- **The home page is built from a real shelf.** The records on the changer, the
+  links in the strip and the songs on the turntable are the playlists on
+  `/saurabhchandra`, read at build time and refreshed hourly, so the page can
+  never advertise a product that looks different from the one that ships. A
+  failed read returns empty lists instead of throwing, so a build without a
+  database still ships a page, just without the art.
+- **The turntables are modelled in three.js**, because vinyl only looks like
+  vinyl when it reflects like vinyl: its grooves are concentric, so light
+  streaks radially across it and the streak stays put while the record turns.
+  That comes from an anisotropic material with a procedural groove map (glossy
+  gaps between tracks included), lit by a dark studio of softboxes rather than
+  a bright room, which is what keeps coloured pressings deep instead of
+  pastel. Labels are printed onto a canvas from the playlist cover, with the
+  credits set round the rim. The hero changer drops records under gravity;
+  the player turntable spins up and lowers its arm when a song plays; the
+  records in the step sleeves are the same model, rendered once into images
+  rather than kept as live scenes.
+- **Every "Claim your link" leads to `/signup`**, the original landing page,
+  which keeps its own sign-in card. A name typed on the home page is checked
+  live with the same rules and endpoint as onboarding, rides along in
+  sessionStorage, and is already in the onboarding field after Google. A name
+  that is taken or invalid holds the visitor on the page; no name at all does
+  not, since one can be picked after signing in.
+- **The phone on the home page runs the real profile**, through
+  `/embed/[layout]?chrome=1`. It is laid out at the 393px the profile is built
+  for and scaled into the frame, and it ignores the pointer until "Try it
+  here", because otherwise a wheel or a swipe over it scrolls the shelf instead
+  of the page.
+- **The footer is a Chladni plate, in three.js.** Sand grains on a vibrating plate
+  drain off the moving areas onto the still lines, and re-form every few seconds
+  as the mode changes. three is imported only when the footer comes near, the
+  grain count follows the band size, it stops while off screen, and with reduced
+  motion one figure is settled once and shown still.
+- **Google avatars are loaded with `referrerPolicy="no-referrer"`.** Google's
+  image host refuses requests that carry a Referer, and the browser then blocks
+  the response outright (`ERR_BLOCKED_BY_ORB`), which had left every Google
+  avatar on the site broken.
 - **Deleting an account is a flag, not a cascade** — see Moderation below.
 - **Visits are counted by a beacon, not during render** — see Counting visits
   below.

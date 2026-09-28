@@ -170,6 +170,8 @@ export default async function PublicProfilePage(
               // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={profile.avatarUrl}
+                // Google avatars refuse requests that carry a Referer, and the browser then blocks them.
+                referrerPolicy="no-referrer"
                 alt=""
                 width={84}
                 height={84}

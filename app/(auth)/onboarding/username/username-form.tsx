@@ -1,6 +1,8 @@
 "use client";
 
-import { useActionState, useEffect, useState } from "react";
+import { useActionState, useEffect, useState, useSyncExternalStore } from "react";
+
+import { CLAIM_KEY } from "@/app/_landing/claim-store";
 
 import {
   USERNAME_MAX_LENGTH,
@@ -9,6 +11,16 @@ import {
 } from "@/lib/username";
 
 import { claimUsername, type ClaimUsernameState } from "./actions";
+
+/** The name typed on the home page, carried through the sign-in round trip in this tab. */
+function readClaimed(): string {
+  try {
+    return (sessionStorage.getItem(CLAIM_KEY) ?? "").trim().slice(0, USERNAME_MAX_LENGTH);
+  } catch {
+    return "";
+  }
+}
+const noSubscription = () => () => {};
 
 // Long enough that typing a name end-to-end sends one request, not one per key.
 const DEBOUNCE_MS = 450;
@@ -25,7 +37,9 @@ export function UsernameForm() {
     claimUsername,
     undefined
   );
-  const [value, setValue] = useState("");
+  const claimed = useSyncExternalStore(noSubscription, readClaimed, () => "");
+  const [typed, setTyped] = useState<string | null>(null);
+  const value = typed ?? claimed;
   const [remote, setRemote] = useState<RemoteResult | null>(null);
 
   // Everything that can be known without the network is derived during render.
@@ -98,7 +112,7 @@ export function UsernameForm() {
         inputMode="text"
         placeholder="username"
         value={value}
-        onChange={(event) => setValue(event.target.value)}
+        onChange={(event) => setTyped(event.target.value)}
         aria-describedby="username-hint"
         aria-invalid={isTaken || validation?.ok === false || undefined}
         // Not the shared .field: this one is the page's single subject, so it

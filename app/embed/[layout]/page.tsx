@@ -2,8 +2,10 @@ import { notFound } from "next/navigation";
 
 import { Arc } from "@/app/[username]/arc";
 import { Deck } from "@/app/[username]/deck";
+import { DeckProfile } from "@/app/[username]/deck-profile";
 import { showcaseTracks, type ShowcaseItem } from "@/app/[username]/playlist-item";
 import { providerLabel } from "@/components/provider-badge";
+import { absoluteUrl, displayUrl } from "@/lib/app-url";
 import { getPublicProfile } from "@/lib/profile";
 import { surfaceLabel } from "@/lib/playlist-link";
 
@@ -14,23 +16,25 @@ export const dynamic = "force-dynamic";
  *
  * It renders the same Deck and Arc the public profile does, from the same
  * data, so the write-up can never drift from what actually ships. Only the
- * profile chrome is left off.
+ * profile chrome is left off, unless ?chrome=1 asks for the whole page.
  */
 export default async function EmbedPage({
   params,
   searchParams,
 }: {
   params: Promise<{ layout: string }>;
-  searchParams: Promise<{ u?: string }>;
+  searchParams: Promise<{ u?: string; chrome?: string }>;
 }) {
   const { layout } = await params;
   if (layout !== "stacked" && layout !== "arc") notFound();
 
-  const { u } = await searchParams;
+  const { u, chrome } = await searchParams;
   const data = await getPublicProfile(u ?? "demo");
   if (!data) notFound();
 
-  const items: ShowcaseItem[] = data.playlists.map((playlist) => ({
+  // Grouped by service, the order the public page shows them in.
+  const grouped = [...Map.groupBy(data.playlists, (p) => p.provider).values()].flat();
+  const items: ShowcaseItem[] = grouped.map((playlist) => ({
     id: playlist.id,
     title: playlist.title,
     provider: playlist.provider,
@@ -47,6 +51,27 @@ export default async function EmbedPage({
   }));
 
   if (items.length === 0) notFound();
+
+  const { profile } = data;
+  if (chrome === "1") {
+    return (
+      <>
+        <style>{"nextjs-portal{display:none!important}"}</style>
+        <div className="flex-1">
+          <DeckProfile
+            displayName={profile.displayName || profile.username}
+            handle={`@${profile.username}`}
+            avatarUrl={profile.avatarUrl}
+            bio={profile.bio}
+            items={items}
+            shareUrl={absoluteUrl(`/${profile.usernameNormalized}`)}
+            shareDisplay={displayUrl(`/${profile.usernameNormalized}`)}
+            layout={layout}
+          />
+        </div>
+      </>
+    );
+  }
 
   return (
     <>
