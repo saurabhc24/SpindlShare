@@ -116,8 +116,11 @@ export function Arc({ items, address }: { items: ShowcaseItem[]; address?: strin
       directionRef.current = step;
       const from = offsetRef.current;
       const to = Math.round(from) + step;
-      const started = performance.now();
+      // Timed from the frame clock alone: in an iframe it can run seconds behind
+      // performance.now(), and mixing the two sent the arc spinning for that long.
+      let started = -1;
       const tick = (now: number) => {
+        if (started < 0) started = now;
         const t = Math.min(1, (now - started) / ADVANCE_MS);
         const eased = 1 - Math.pow(1 - t, 2.4);
         const next = from + (to - from) * eased;

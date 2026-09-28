@@ -854,10 +854,11 @@ export function createTurntable(container: HTMLElement, options: Options): Turnt
   });
   io.observe(container);
 
-  let last = performance.now();
+  let last = -1;
   let first = true;
   const frame = (now: number) => {
-    const dt = Math.min(0.05, (now - last) / 1000);
+    // The frame clock only: performance.now() can disagree with it inside an iframe.
+    const dt = last < 0 ? 0 : Math.max(0, Math.min(0.05, (now - last) / 1000));
     last = now;
     if (!visible && !first) return;
     clock += dt * 1000;

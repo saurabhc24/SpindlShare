@@ -197,6 +197,11 @@ proxy.ts                          optimistic auth gate (Next 16's renamed middle
   as the mode changes. three is imported only when the footer comes near, the
   grain count follows the band size, it stops while off screen, and with reduced
   motion one figure is settled once and shown still.
+- **Animations time themselves from the frame clock only.** Inside an iframe,
+  the timestamp `requestAnimationFrame` hands over can run seconds behind
+  `performance.now()` (the home page phone showed eight). The shelf started each
+  step on one clock and measured it on the other, so one scroll over the arc in
+  that phone spun it for as long as the gap.
 - **Google avatars are loaded with `referrerPolicy="no-referrer"`.** Google's
   image host refuses requests that carry a Referer, and the browser then blocks
   the response outright (`ERR_BLOCKED_BY_ORB`), which had left every Google

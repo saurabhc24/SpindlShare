@@ -96,7 +96,7 @@ export function Cymatics() {
         el.parentElement?.addEventListener("pointerleave", onLeave);
 
         let mode = 0;
-        let changedAt = performance.now();
+        let changedAt = -1;
         let visible = true;
         const vio = new IntersectionObserver(([e]) => {
           visible = e.isIntersecting;
@@ -104,6 +104,7 @@ export function Cymatics() {
         vio.observe(el);
 
         const step = (now: number, amount: number) => {
+          if (changedAt < 0) changedAt = now;
           if (now - changedAt > MODE_MS) {
             mode = (mode + 1) % MODES.length;
             changedAt = now;
@@ -147,7 +148,8 @@ export function Cymatics() {
         let frame = 0;
         if (calm) {
           // No motion: settle one figure once and show it still.
-          for (let i = 0; i < 400; i++) step(changedAt, 1);
+          changedAt = 0;
+          for (let i = 0; i < 400; i++) step(MODE_MS - 1, 1);
           renderer.render(scene, camera);
         } else {
           const loop = (now: number) => {

@@ -233,9 +233,11 @@ export function Deck({ items, address }: { items: ShowcaseItem[]; address?: stri
 
       const from = offsetRef.current;
       const to = Math.round(from) + direction;
-      const started = performance.now();
+      // Timed from the frame clock alone; in an iframe it can lag performance.now().
+      let started = -1;
 
       const tick = (now: number) => {
+        if (started < 0) started = now;
         const t = Math.min(1, (now - started) / ADVANCE_MS);
         // Mostly ease-out: the card should answer the gesture at once and settle
         // gently. A symmetric cubic left it near-motionless for the first 100ms.
