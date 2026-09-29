@@ -52,9 +52,11 @@ export function Cymatics() {
         // Sand only reads as lines, so the count follows their length (plates × plate size), not
         // the area: by area a phone got so few grains per line that the figures fell apart.
         const box = el.getBoundingClientRect();
-        const plates = Math.max(1, Math.round(box.width / Math.max(1, box.height) / 1.2));
-        const GRAINS = Math.min(MAX_GRAINS, Math.round(plates * Math.sqrt((box.width / plates) * box.height) * 10));
         const phone = box.width < 700;
+        // Plates run about square on wide screens; a phone's short band keeps one wide 2.5:1 plate.
+        const PLATE = phone ? 2.5 : 1.2;
+        const plates = Math.max(1, Math.round(box.width / Math.max(1, box.height) / PLATE));
+        const GRAINS = Math.min(MAX_GRAINS, Math.round(plates * Math.sqrt((box.width / plates) * box.height) * 10));
         const positions = new Float32Array(GRAINS * 3);
         for (let i = 0; i < GRAINS; i++) {
           positions[i * 3] = Math.random() * 2 - 1;
@@ -117,8 +119,8 @@ export function Cymatics() {
           // A new frequency kicks the whole plate hard, then eases back to a steady hum.
           const kick = Math.exp(-(now - changedAt) / 700);
           const hum = 0.0045 + 0.035 * kick;
-          // Plates side by side across the band, each close to square.
-          const cell = aspect / Math.max(1, Math.round(aspect / 1.2));
+          // Plates side by side across the band, each close to PLATE wide per unit high.
+          const cell = aspect / Math.max(1, Math.round(aspect / PLATE));
           for (let i = 0; i < GRAINS; i++) {
             const k = i * 3;
             let x = positions[k];

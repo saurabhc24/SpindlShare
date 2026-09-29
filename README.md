@@ -198,8 +198,8 @@ proxy.ts                          optimistic auth gate (Next 16's renamed middle
   stops while off screen, and with reduced motion one figure is settled once and
   shown still. The grain count follows the length of the lines (plates × plate
   size), not the band's area. Counted by area, a phone got too few grains per
-  line for any figure to read, so phones also get a taller band with one whole
-  plate above the wordmark.
+  line for any figure to read. Phones get a fixed 160px band holding one wide
+  2.5:1 plate, where wider screens split theirs into near-square plates.
 - **Animations time themselves from the frame clock only.** Inside an iframe,
   the timestamp `requestAnimationFrame` hands over can run seconds behind
   `performance.now()` (the home page phone showed eight). The shelf started each
