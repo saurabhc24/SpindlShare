@@ -5,14 +5,16 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>SpindlShare case study draft</title>
 <style>
+  /* The landing page's own tokens: shellac, bone and brass, with its ruby for the sand. */
   :root {
-    --bg: #0b0a09;
-    --panel: #141110;
-    --line: #262220;
-    --ink: #f4f1ec;
+    --bg: #0e0b09;
+    --panel: #17120e;
+    --line: #29231f;
+    --ink: #f3ede3;
     --dim: #a8a099;
-    --faint: #6f6862;
-    --gold: #e8c98a;
+    --faint: #756d66;
+    --gold: #e7c57a;
+    --ruby: #c3192f;
     --measure: 68ch;
   }
   * { box-sizing: border-box; }
@@ -22,6 +24,7 @@
     color: var(--ink);
     font: 16px/1.65 ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
     -webkit-font-smoothing: antialiased;
+    overflow-x: clip;
   }
   .wrap { max-width: 860px; margin: 0 auto; padding: 0 24px; }
 
@@ -116,8 +119,20 @@
      column, which made a 412px screenshot read as a tablet. */
   figure.phone img { max-width: 300px; margin: 0 auto; }
   .pair figure.phone img { max-width: 100%; }
+  /* Desktop captures run wider than the text, so a 1440px page reads at a size
+     where its type is still legible. */
+  figure.bleed {
+    position: relative;
+    left: 50%;
+    width: min(1180px, 100vw - 48px);
+    transform: translateX(-50%);
+  }
+  figure.bleed figcaption { max-width: 812px; }
   figcaption { color: var(--faint); font-size: 13px; margin-top: 10px; max-width: var(--measure); }
+  figcaption b { color: var(--ink); font-weight: 600; }
   .pair { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  .pair figure { margin: 0; }
+  .pair + p, .pair + .pull { margin-top: 32px; }
   @media (max-width: 640px) { .pair { grid-template-columns: 1fr; } }
 
   .card {
@@ -196,67 +211,6 @@
   .demo-head h3 { margin: 0; font-size: 15px; font-weight: 600; }
   .demo-hint { color: var(--faint); font-size: 12.5px; margin: 0; }
 
-  .demo-stage {
-    position: relative;
-    height: 260px;
-    border-radius: 12px;
-    background: radial-gradient(120% 70% at 50% -10%, #241d16 0%, #14100d 40%, #0a0807 80%);
-    overflow: hidden;
-    touch-action: none;
-    cursor: grab;
-    outline: none;
-  }
-  .demo-stage:focus-visible { box-shadow: 0 0 0 2px var(--gold); }
-  .demo-stage:active { cursor: grabbing; }
-
-  .demo-card {
-    position: absolute;
-    left: 44%;
-    top: 54%;
-    margin: -66px 0 0 -66px;
-    padding: 0;
-    border: 0;
-    border-radius: 10px;
-    overflow: hidden;
-    background: #0a0806;
-    cursor: pointer;
-    transition: filter 0.2s;
-  }
-  .demo-card img { display: block; width: 100%; height: 100%; object-fit: cover; }
-  .demo-label {
-    position: absolute;
-    top: 6px;
-    right: 7px;
-    font-size: 9px;
-    font-weight: 700;
-    letter-spacing: 0.03em;
-    color: #fff;
-    text-shadow: 0 1px 3px rgba(0,0,0,0.9);
-    pointer-events: none;
-  }
-
-  .demo-stage-arc { height: 230px; }
-  .demo-arc-cover {
-    position: absolute;
-    left: 0;
-    top: 0;
-    border-radius: 9px;
-    overflow: hidden;
-    background: #0a0806;
-  }
-  .demo-arc-cover img { display: block; width: 100%; height: 100%; object-fit: cover; }
-  .demo-arc-detail {
-    position: absolute;
-    left: 246px;
-    top: 110px;
-    transform: translateY(-50%);
-    border-left: 2px solid var(--gold);
-    padding-left: 12px;
-    pointer-events: none;
-  }
-  .demo-arc-title { margin: 0; font-size: 13px; font-weight: 600; color: #fff; letter-spacing: 0.04em; }
-  .demo-arc-sub { margin: 3px 0 0; font-size: 11px; color: var(--dim); }
-
   .demo-btn {
     margin-top: 12px;
     padding: 8px 16px;
@@ -329,6 +283,23 @@
   .demo-spin-note.is-fading { animation: demoFade 4s ease-in forwards; }
   @keyframes demoFade { 0%, 60% { opacity: 1; } 100% { opacity: 0; } }
 
+  /* The sand plate: ruby, as it sits under the wordmark on the site. */
+  .demo-sand {
+    height: 220px;
+    border-radius: 12px;
+    overflow: hidden;
+    background: var(--ruby);
+    touch-action: pan-y;
+  }
+  .demo-sand canvas { display: block; width: 100%; height: 100%; }
+  .demo-sand-bar { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+  .demo-sand-readout {
+    margin-top: 12px;
+    font-size: 12.5px;
+    color: var(--dim);
+    font-variant-numeric: tabular-nums;
+  }
+
   @media (prefers-reduced-motion: reduce) {
     .demo-spin-btn.is-busy svg { animation-duration: 2.4s; }
     .demo-spin-note.is-fading { animation: none; }
@@ -381,8 +352,8 @@
 <body>
 
 <div class="draft">
-  <b>Draft</b> for your portfolio. Screenshots are the real product, captured from
-  the live site. Check the one stat noted below before publishing.
+  <b>Draft</b> for your portfolio. Screenshots are the real product, captured
+  from spindlshare.com; the homepage and player shots were retaken on 30 September 2026.
 </div>
 
 <div class="wrap">
@@ -396,19 +367,27 @@
     </p>
 
     <dl class="meta">
-      <div><dt>Role</dt><dd>Product design, UX, frontend, backend</dd></div>
+      <div><dt>Role</dt><dd>Product design, UX, 3D, frontend, backend</dd></div>
       <div><dt>Type</dt><dd>Self-initiated product, shipped</dd></div>
       <div><dt>Timeline</dt><dd>Jul to Sep 2026, ongoing</dd></div>
-      <div><dt>Stack</dt><dd>Next.js 16, TypeScript, Prisma 7, Postgres, Tailwind 4</dd></div>
+      <div><dt>Stack</dt><dd>Next.js 16, TypeScript, three.js, Prisma 7, Postgres, Tailwind 4</dd></div>
     </dl>
 
     <div class="stats">
       <div><b>2</b><span>ways to show a shelf</span></div>
       <div><b>3</b><span>taps to a playing song</span></div>
-      <div><b>10</b><span>fields a public link gives you</span></div>
-      <div><b>132</b><span>commits, solo</span></div>
+      <div><b>100</b><span>songs read from one pasted link</span></div>
+      <div><b>150+</b><span>commits, solo</span></div>
     </div>
   </header>
+
+  <figure class="bleed">
+    <img src="/cs-shots/home-hero.webp" alt="The SpindlShare homepage: the headline Everything you've got spinning beside a modelled record changer, one record on the platter and the rest of the stack on the spindle" />
+    <figcaption>
+      spindlshare.com. The records on the changer are the playlists on a real
+      shelf, dropped onto the platter one after another.
+    </figcaption>
+  </figure>
 
   <section>
     <p class="kicker">The problem</p>
@@ -444,7 +423,7 @@
     </p>
 
     <figure class="phone">
-      <img src="/cs-shots/real-shelf.png" alt="A public SpindlShare profile: playlist covers stacked and receding up to the right" />
+      <img src="/cs-shots/real-shelf.png" alt="A public SpindlShare profile: eight playlist covers stacked and receding up to the right" />
       <figcaption>
         The public page. Covers stack and recede; the name and share button float
         over them rather than pushing them down.
@@ -454,37 +433,98 @@
 
   <section>
     <p class="kicker">The front door</p>
-    <h2>Four screens from a stranger to a shelf</h2>
+    <h2>A homepage that plays the product instead of describing it</h2>
     <p class="lead">
-      The homepage has one job: say what this is, and offer the one button that
-      matters. No feature grid, no pricing table, no scroll-to-learn-more.
+      The first homepage was a headline, a halftone panel and one button. It said
+      what SpindlShare was. The second one shows it running, and everything on
+      it is real: the records on the changer, the links in the marquee and the
+      songs on the turntable are the playlists on a real public shelf.
+    </p>
+    <p>
+      That's a rule, not a flourish. The page is built from that shelf and
+      refreshed hourly, so it can never advertise a product that looks different
+      from the one that ships. If the read fails it gets empty lists rather than
+      an error, and still ships, just without the art.
     </p>
 
-    <figure class="phone">
-      <img src="/cs-shots/flow-1-home.png" alt="The SpindlShare homepage" />
+    <figure class="bleed">
+      <img src="/cs-shots/home-strip.webp" alt="A marquee of Spotify and YouTube playlist URLs on marigold, behind a dark pill reading spindlshare.com/yourname" />
       <figcaption>
-        The headline is the product description. The dot-matrix panel and the
-        turntable line art do the rest, so the copy never has to explain that
-        this is about music.
+        <b>The links it replaces.</b> Every playlist URL on the shelf runs behind
+        the one address you'd share instead.
       </figcaption>
     </figure>
 
+    <figure class="bleed">
+      <img src="/cs-shots/home-steps.webp" alt="Three steps as record sleeves in ruby, cobalt and marigold, each with a modelled record sliding out of the top" />
+      <figcaption>
+        <b>Three steps, set as sleeves.</b> Each holds a record from the same 3D
+        model as the turntables, rendered once into an image: a plain bone
+        pressing for your name, the playlist you paste, the one you share.
+      </figcaption>
+    </figure>
+
+    <figure class="bleed">
+      <img src="/cs-shots/home-shelf.webp" alt="A phone on cobalt running a live SpindlShare profile, with a Stacked and Arc switch beside it" />
+      <figcaption>
+        <b>The real shelf, in a phone.</b> Not a mock-up: the shipped profile,
+        laid out at the 393px it's designed for and scaled into the frame. It
+        ignores the pointer until "Try it here", so a scroll over the phone still
+        scrolls the page.
+      </figcaption>
+    </figure>
+
+    <figure class="bleed">
+      <img src="/cs-shots/home-player.webp" alt="A modelled turntable playing beside a list of songs, the second song highlighted in gold" />
+      <figcaption>
+        <b>Tap a song, hear it.</b> Real 30-second previews from a playlist on the
+        shelf. The platter spins up, the arm lowers, and the label follows the song.
+      </figcaption>
+    </figure>
+
+    <figure class="bleed">
+      <img src="/cs-shots/home-back.webp" alt="The ruby back cover: a claim form, liner notes listing the product's facts, and the SpindlShare wordmark over a field of sand figures" />
+      <figcaption>
+        <b>The back cover.</b> Liner notes where every line is a fact about the
+        product, and a plate of sand under the wordmark.
+      </figcaption>
+    </figure>
+
+    <div class="card">
+      <h3>The name you type comes with you</h3>
+      <p>
+        A name typed on the homepage is checked live, with the same rules and
+        endpoint as onboarding, and rides along in the session: after Google,
+        it's already in the field. A taken name holds you on the page; no name at
+        all doesn't, since one can be picked after signing in.
+      </p>
+    </div>
+
+    <div class="card">
+      <h3>The old front door became the way in</h3>
+      <p>
+        Every "Claim your link" leads to <code>/signup</code>, the original
+        homepage, which keeps its own sign-in card. Nothing that worked was
+        thrown away to make room for the new page.
+      </p>
+    </div>
+
     <div class="flow">
       <figure>
-        <img src="/cs-shots/flow-1-home.png" alt="Homepage with Claim your link" />
-        <figcaption><b>1. Arrive</b>Claim your link, or sign in if you have one.</figcaption>
+        <img src="/cs-shots/flow-1-home.png" alt="The homepage on a phone: the headline, Claim your link, and the record changer" />
+        <figcaption><b>1. Arrive</b>The changer, and one button.</figcaption>
       </figure>
       <figure>
-        <img src="/cs-shots/flow-2-login.png" alt="The sign-in screen" />
-        <figcaption><b>2. Sign in</b>One button. Google, and nothing to fill in.</figcaption>
+        <img src="/cs-shots/flow-2-signup.webp" alt="The original homepage, a dot-matrix backdrop behind Claim your link" />
+        <figcaption><b>2. Claim</b>The original homepage, now the way in.</figcaption>
+      </figure>
+      <figure>
+        <img src="/cs-shots/flow-3-card.png" alt="The sign-in card risen over the page, with Continue with Google" />
+        <figcaption><b>3. Sign in</b>One button. Google, and nothing to fill in.</figcaption>
       </figure>
       <figure>
         <img src="/cs-shots/flow-4-verify.png" alt="Check your email" />
-        <figcaption><b>3. Or by email</b>A link that expires in 24 hours.</figcaption>
-      </figure>
-      <figure>
-        <img src="/cs-shots/flow-5-guarded.png" alt="The dashboard redirecting to sign in" />
-        <figcaption><b>4. Guarded</b>Reaching the dashboard signed out returns you here.</figcaption>
+        <figcaption><b>4. Or by email</b>A link that expires in 24 hours.</figcaption>
       </figure>
     </div>
 
@@ -497,9 +537,126 @@
       <p>
         <strong>The email path is built and switched off.</strong> It needs a
         Resend key, which this deployment has no budget for, so the live site
-        offers Google alone. The screen above is real, and the code behind it
+        offers Google alone. The fourth screen is real, and the code behind it
         ships; it turns on with one environment variable.
       </p>
+    </div>
+  </section>
+
+  <section>
+    <p class="kicker">The object</p>
+    <h2>Modelled, not drawn</h2>
+    <p class="lead">
+      The changer started as CSS: flat discs seen from above, the grooves a
+      repeating gradient and the shine a conic one laid over the top. It read as
+      a diagram of a record rather than a record, and up close the gradient's
+      rings shimmered into moiré. So it was rebuilt in three.js, in real units of
+      a record's radius.
+    </p>
+    <p>
+      Vinyl shines the way it does because its grooves are concentric. Light
+      streaks radially across the record, and the streak stays put while the
+      record turns. That comes from an anisotropic material whose grain runs
+      along the grooves, over a procedural groove map that leaves glossy gaps
+      between the tracks.
+    </p>
+
+    <figure>
+      <img src="/cs-shots/home-changer.webp" alt="Close-up of the modelled changer: a lilac record at the top of the stack, a red one playing, walnut plinth and brass tonearm" />
+      <figcaption>
+        Mid-cycle: the stack waiting on the spindle, one record playing, the arm
+        in the groove.
+      </figcaption>
+    </figure>
+
+    <ul>
+      <li>
+        <strong>A dark studio, not a bright room.</strong> The stock room
+        environment washed the coloured pressings out to pastel. A handful of
+        softboxes in the dark gives crisp highlights and keeps a ruby pressing ruby.
+      </li>
+      <li>
+        <strong>Labels printed from the cover.</strong> Each playlist's artwork is
+        printed onto a paper label, with the wordmark set round the top, the
+        playlist's name round the bottom and SIDE A down the side.
+      </li>
+      <li>
+        <strong>A deck worth looking at.</strong> Book-matched walnut, a brass
+        inlay, a machined platter with strobe dots and a lamp to read them by, 33
+        lit, and a gimballed S-shaped arm with a brass counterweight.
+      </li>
+      <li>
+        <strong>Motion with weight.</strong> The changer drops each record under
+        gravity; the platter catches it and takes the spin, and the stack settles
+        by one. On the player, the platter spins up and the arm lowers only while
+        a song is actually playing.
+      </li>
+      <li>
+        <strong>One model, three uses.</strong> The hero changer, the player
+        turntable, and the records in the step sleeves, which are the same model
+        rendered once into images instead of three more live scenes.
+      </li>
+      <li>
+        <strong>Paid for on arrival.</strong> three is split out of the first
+        load: the hero's scene is fetched once the page has painted, the rest
+        only as their section comes near, and with reduced motion every scene
+        holds still.
+      </li>
+    </ul>
+
+    <figure>
+      <img src="/cs-shots/home-deck.webp" alt="The player's modelled turntable with a black record spinning and the arm lowered onto it" />
+      <figcaption>The player's turntable while a preview plays.</figcaption>
+    </figure>
+  </section>
+
+  <section>
+    <p class="kicker">The back cover</p>
+    <h2>Sand on a plate</h2>
+    <p class="lead">
+      The page ends on a Chladni plate. Sand on a vibrating plate is thrown off
+      the parts that move and collects on the lines that don't, and every three
+      seconds a new frequency kicks the plate and the sand runs into a new figure.
+    </p>
+    <p>
+      The figure is the standing wave of a free square plate,
+      <code>cos(nπx)cos(mπy) − cos(mπx)cos(nπy)</code>, and the sand gathers
+      where it's zero. Each grain drifts toward the nearest still line and
+      jitters with the plate's hum, so even a settled figure never quite stops
+      buzzing, and the pointer shakes grains loose like a finger on the plate.
+    </p>
+
+    <div class="demo">
+      <div class="demo-head">
+        <h3>The plate, running live</h3>
+        <p class="demo-hint">A new frequency every 3 seconds. Drag across it.</p>
+      </div>
+      <div id="demo-sand"></div>
+      <p class="demo-hint" style="margin-top:12px">
+        The shipped modes, wave and constants, drawn on a 2D canvas here instead
+        of in three.js. The same rules pick the plate: narrower than 700px, it
+        becomes the phone's 160px band.
+      </p>
+    </div>
+
+    <p>
+      On a phone, it fell apart. The band was 122px tall, split into three
+      plates 130px wide, and the grain count followed the band's area, which gave
+      a phone about 1,400 grains against 13,000 on a desktop. But sand only reads
+      as lines, and a small plate has short ones: what matters is how many grains
+      land on each. Counted by line length instead, plates times plate size, a
+      phone gets 2,500, in a fixed 160px band holding one wide plate.
+    </p>
+
+    <div class="pair">
+      <figure>
+        <img src="/cs-shots/sand-before.png" alt="The phone footer before: sparse, oversized grains in a thin strip, no figure readable" />
+        <figcaption><b>Before.</b> Counted by area: big, sparse specks.</figcaption>
+      </figure>
+      <figure>
+        <img src="/cs-shots/sand-after.png" alt="The phone footer after: fine grains drawing a clear Chladni figure above the wordmark" />
+        <figcaption><b>After.</b> Counted by line length, on one 2.5:1 plate.</figcaption>
+      </figure>
     </div>
   </section>
 
@@ -583,7 +740,7 @@
 
     <div class="pair">
       <figure class="phone">
-        <img src="/cs-shots/real-lifted.png" alt="The stacked shelf on the live site, a card lifted" />
+        <img src="/cs-shots/real-lifted.png" alt="The stacked shelf on the live site, the front card lifted with its service and song count" />
         <figcaption>Stacked, on the live site.</figcaption>
       </figure>
       <figure class="phone">
@@ -620,16 +777,24 @@
       So the product pivoted to the one route that works without permission:
       <strong>paste a link.</strong> The public oEmbed endpoint returns a
       playlist's title and cover art to anyone who asks. That's ten fields, and
-      not one of them is a track, which quietly settled what the product could
-      and couldn't promise.
+      not one of them is a track.
+    </p>
+    <p>
+      For a while that meant no songs at all. Then they came back another way.
+      Spotify's own embed page ships a playlist's whole track list in a data blob
+      that needs no account, and YouTube's playlist page lists its first hundred
+      videos in its initial data, YouTube Music's tracks among them. Neither is an
+      API and neither promises anything, so the parser searches for the list
+      instead of walking a fixed path, and every failure returns an empty one:
+      <strong>a change on their side costs the song list, never the page.</strong>
     </p>
 
     <div class="note">
       <p>
-        <strong>What it cost.</strong> The song list I'd designed under each
-        player can't be populated from a pasted link. Rather than leave a
-        promise the data can't keep, the refresh control says what it actually
-        does: re-reads each playlist's name and cover art.
+        <strong>What it cost.</strong> Both pages stop at 100 songs, and nothing
+        without a login goes further. Rather than pass the first hundred off as
+        the lot, the real size is read from the playlist page's own metadata, so a
+        long playlist says "279 tracks" and "Showing 100 of 279".
       </p>
       <p>
         <strong>What it saved.</strong> No OAuth, no tokens, no approval queue.
@@ -668,6 +833,41 @@
   </section>
 
   <section>
+    <p class="kicker">The player</p>
+    <h2>Their audio, our player</h2>
+    <p class="lead">
+      Spotify's embedded player only streams to a visitor signed in to Spotify,
+      so on a public page it mostly sat there doing nothing, and a cross-origin
+      iframe can't be restyled to match anything. So the song rows became the
+      controls.
+    </p>
+    <p>
+      A Spotify song plays its 30-second preview, which anyone can hear, through
+      a plain audio element. YouTube has no previews, so its songs play whole
+      through YouTube's own player, kept on the page at zero opacity behind the
+      same gold bar and rows: a video window above a song list read as a
+      different product. <strong>That is a deliberate trade against YouTube's
+      terms</strong>, which want the player visible, and it's the first thing to
+      break if they enforce them.
+    </p>
+    <p>
+      Each service is named by its own icon rather than a coloured dot, and the
+      page ends on the profile's address and wordmark.
+    </p>
+
+    <div class="pair">
+      <figure class="phone">
+        <img src="/cs-shots/real-player.png" alt="The player for a Spotify playlist, a song playing, its row marked with a gold pause" />
+        <figcaption><b>Spotify.</b> 30-second previews; the row that's playing shows a gold pause.</figcaption>
+      </figure>
+      <figure class="phone">
+        <img src="/cs-shots/real-youtube.png" alt="The player for a YouTube Music playlist: 55 tracks, full songs, the YouTube Music icon at the top" />
+        <figcaption><b>YouTube Music.</b> Whole songs, from a player you never see.</figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <section>
     <p class="kicker">The process</p>
     <h2>Built by measuring, not by eyeballing</h2>
     <p class="lead">
@@ -692,18 +892,41 @@
         Corrected, the real figure was 1.59:1: illegible. That's what put the
         gradient behind the titles.
       </li>
+      <li>
+        <strong>The arc that wouldn't stop.</strong> In the homepage's phone, one
+        scroll over the arc spun it for eight seconds. Inside an iframe, the
+        timestamp the browser hands each animation frame ran eight seconds behind
+        <code>performance.now()</code>, and each step started on one clock and
+        was measured on the other. Everything that moves now times itself from
+        the frame clock alone.
+      </li>
+      <li>
+        <strong>The wordmark's margin.</strong> A 2% gap either side of the giant
+        wordmark, measured from the letters' ink rather than their box: at
+        14.4vw they filled 98% of the width, at 14.1vw they fill 96%. Padding the
+        box instead pinned the word left, because a centred line wider than its
+        box falls back to the start edge.
+      </li>
+      <li>
+        <strong>The avatars that never loaded.</strong> Every Google avatar on the
+        site was blank. Google's image host refuses a request that carries a
+        Referer, and the browser then blocks the response outright; one attribute
+        fixed all of them.
+      </li>
     </ul>
     <p>
       Several times the measurements passed while the screenshot showed a
       problem: a tonearm clipped off its deck, a provider logo frozen while the
-      text around it moved. Both got caught by looking.
+      text around it moved, sand on a phone that was all there and all moving
+      and still read as noise. All three got caught by looking.
     </p>
 
     <figure class="phone">
       <img src="/cs-shots/real-songs.png" alt="The player page: turntable, our own play bar, and the song list beneath" />
       <figcaption>
         The player. Shrinking the turntable from 208px to 150px took the visible
-        song rows from four to nine on a 412px screen.
+        song rows from four to nine on a 412px screen; the footer that now ends
+        the page takes one back.
       </figcaption>
     </figure>
   </section>
@@ -712,14 +935,16 @@
     <p class="kicker">The maker</p>
     <h2>A solo project, taken end to end</h2>
     <p class="lead">
-      Product thinking, interaction design, visual design, frontend, backend,
-      database, auth, deployment. 132 commits over two months, still going.
+      Product thinking, interaction design, visual design, 3D, frontend,
+      backend, database, auth, deployment. 150+ commits over two months, still
+      going.
     </p>
     <ul>
-      <li><strong>Design.</strong> The shelf metaphor, both layouts, the dashboard, the settings, the admin.</li>
-      <li><strong>Frontend.</strong> Next.js 16 App Router, React 19, Tailwind 4; the deck and arc are hand-written geometry, no animation library.</li>
+      <li><strong>Design.</strong> The shelf metaphor, both layouts, the homepage, the dashboard, the settings, the admin.</li>
+      <li><strong>3D and motion.</strong> The turntables and the sand are three.js, modelled and lit by hand; the deck and arc are hand-written geometry, no animation library.</li>
+      <li><strong>Frontend.</strong> Next.js 16 App Router, React 19, Tailwind 4, and CSS modules for the homepage.</li>
       <li><strong>Backend.</strong> Prisma 7 on Postgres, ten models, Auth.js v5 with Google and email sign-in, rate limiting per account and per IP, tokens encrypted with AES-256-GCM.</li>
-      <li><strong>Care.</strong> Twelve check suites, ISR-cached public pages, reduced-motion honoured throughout.</li>
+      <li><strong>Care.</strong> Thirteen check suites, ISR-cached public pages, reduced motion honoured throughout, and spindlshare.vercel.app kept as a complete working copy in case the domain ever lapses.</li>
     </ul>
   </section>
 
@@ -732,6 +957,10 @@
 
 </div>
 
+<script>
+  /* The dashboard's first three playlists, for the layout-shift demo. */
+  window.SHELF = [{ title: "OG B-TOWN" }, { title: "(G)old" }, { title: "Hollywood" }];
+</script>
 <script src="/demos.js"></script>
 </body>
 </html>
