@@ -1197,7 +1197,10 @@
 }
 .giantMark {
   margin: 0;
-  font-size: 14.4vw;
+  /* Sized so the letters' ink fills 96vw, leaving a 2vw gap each side; the indent
+     cancels the trailing letter-spacing that nudged them left of centre. */
+  font-size: 14.1vw;
+  text-indent: 0.02em;
   line-height: 0.74;
   text-align: center;
   white-space: nowrap;
