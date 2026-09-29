@@ -194,9 +194,12 @@ proxy.ts                          optimistic auth gate (Next 16's renamed middle
   of the page.
 - **The footer is a Chladni plate, in three.js.** Sand grains on a vibrating plate
   drain off the moving areas onto the still lines, and re-form every few seconds
-  as the mode changes. three is imported only when the footer comes near, the
-  grain count follows the band size, it stops while off screen, and with reduced
-  motion one figure is settled once and shown still.
+  as the mode changes. three is imported only when the footer comes near, it
+  stops while off screen, and with reduced motion one figure is settled once and
+  shown still. The grain count follows the length of the lines (plates × plate
+  size), not the band's area. Counted by area, a phone got too few grains per
+  line for any figure to read, so phones also get a taller band with one whole
+  plate above the wordmark.
 - **Animations time themselves from the frame clock only.** Inside an iframe,
   the timestamp `requestAnimationFrame` hands over can run seconds behind
   `performance.now()` (the home page phone showed eight). The shelf started each

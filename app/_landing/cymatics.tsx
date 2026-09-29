@@ -49,9 +49,12 @@ export function Cymatics() {
 
         const scene = new THREE.Scene();
         const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
-        // Density follows the band size, so a phone gets a scattering rather than a carpet.
+        // Sand only reads as lines, so the count follows their length (plates × plate size), not
+        // the area: by area a phone got so few grains per line that the figures fell apart.
         const box = el.getBoundingClientRect();
-        const GRAINS = Math.min(MAX_GRAINS, Math.round((box.width * box.height) / 34));
+        const plates = Math.max(1, Math.round(box.width / Math.max(1, box.height) / 1.2));
+        const GRAINS = Math.min(MAX_GRAINS, Math.round(plates * Math.sqrt((box.width / plates) * box.height) * 10));
+        const phone = box.width < 700;
         const positions = new Float32Array(GRAINS * 3);
         for (let i = 0; i < GRAINS; i++) {
           positions[i * 3] = Math.random() * 2 - 1;
@@ -61,10 +64,11 @@ export function Cymatics() {
         geometry.setAttribute("position", new THREE.BufferAttribute(positions, 3));
         const material = new THREE.PointsMaterial({
           color: 0xf3ede3,
-          size: 1.5 * Math.min(window.devicePixelRatio, 2) * (box.width < 700 ? 0.7 : 1),
+          // three already scales size by the pixel ratio, so a phone asks for plain 1.5px grains.
+          size: phone ? 1.5 : 1.5 * Math.min(window.devicePixelRatio, 2),
           sizeAttenuation: false,
           transparent: true,
-          opacity: 0.5,
+          opacity: phone ? 0.7 : 0.5,
         });
         scene.add(new THREE.Points(geometry, material));
 
