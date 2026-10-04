@@ -1,7 +1,9 @@
 # Showreel
 
-`spindlshare-showreel.mp4`: 1920x1080, 60 fps, 64 seconds, H.264 with an
-original soundtrack.
+`spindlshare-showreel.mp4`: the edited cut, 1920x1080, 30 fps, 57 seconds,
+H.264 with an original soundtrack. It was cut in Clipchamp from the rendered
+film (64 seconds at 60 fps), and is kept in Git LFS because the export is over
+GitHub's 100 MB file limit.
 
 A motion piece rather than a walkthrough: nine scenes on one 120 BPM clock. A
 cold open on the real deck, the headline, the record changer, the links it
@@ -12,7 +14,7 @@ the music read their cues from the same file, `showreel/src/score.mjs`.
 ## Rebuild
 
 ```bash
-FFMPEG=<path to ffmpeg> node promo/showreel/render.mjs    # the film, about 25 min
+FFMPEG=<path to ffmpeg> node promo/showreel/render.mjs    # the film, about 20 min
 node promo/showreel/render.mjs --draft                     # 30 fps, no blur, 4 min
 node promo/showreel/preview.mjs <dir> 12.5 40.2            # stills at chosen times
 node promo/showreel/music.mjs                              # the soundtrack alone
@@ -39,8 +41,9 @@ counts and songs.
   one shared position curve.
 - **Motion blur** is three sub-frames across half of each frame, a 180° shutter,
   averaged by ffmpeg.
-- **Two encodes.** The master (CRF 14) stays in `showreel/dist/`, which git
-  ignores; the file here is re-encoded to a size the repository can carry.
+- **The render never touches the edited cut.** It writes a master (CRF 14) and a
+  web copy to `showreel/dist/`, which git ignores; re-cutting the film from
+  them is a separate, deliberate step.
 
 # Feature video
 

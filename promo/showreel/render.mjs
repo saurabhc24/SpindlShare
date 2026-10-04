@@ -1,6 +1,6 @@
 /* Films the showreel frame by frame and encodes it with its soundtrack.
  *
- *   node promo/showreel/render.mjs            1080p60, motion blur, → promo/spindlshare-showreel.mp4
+ *   node promo/showreel/render.mjs            1080p60, motion blur, → dist/showreel.mp4
  *   node promo/showreel/render.mjs --draft    30 fps, no blur, quick, → dist/draft.mp4
  *
  * Every frame is rendered at its exact time, so nothing depends on how fast the
@@ -20,7 +20,8 @@ const draft = process.argv.includes("--draft");
 const FPS = draft ? 30 : 60;
 const SUB = draft ? 1 : 3;
 const SHUTTER = 0.5;
-const OUT = draft ? path.join(DIST, "draft.mp4") : path.join(HERE, "..", "spindlshare-showreel.mp4");
+// Never promo/spindlshare-showreel.mp4: that file is the edited cut, and a render would overwrite it.
+const OUT = path.join(DIST, draft ? "draft.mp4" : "showreel.mp4");
 const MASTER = path.join(DIST, "master.mp4");
 
 if (!fs.existsSync(path.join(DIST, "soundtrack.wav")) || process.argv.includes("--music")) {
