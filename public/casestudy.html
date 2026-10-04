@@ -320,11 +320,10 @@
 
   .flow {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(3, 1fr);
     gap: 14px;
     margin: 28px 0 0;
   }
-  @media (max-width: 720px) { .flow { grid-template-columns: repeat(2, 1fr); } }
   .flow figure { margin: 0; }
   .flow img {
     width: 100%;
@@ -522,10 +521,6 @@
         <img src="/cs-shots/flow-3-card.png" alt="The sign-in card risen over the page, with Continue with Google" />
         <figcaption><b>3. Sign in</b>One button. Google, and nothing to fill in.</figcaption>
       </figure>
-      <figure>
-        <img src="/cs-shots/flow-4-verify.png" alt="Check your email" />
-        <figcaption><b>4. Or by email</b>A link that expires in 24 hours.</figcaption>
-      </figure>
     </div>
 
     <div class="note">
@@ -537,7 +532,7 @@
       <p>
         <strong>The email path is built and switched off.</strong> It needs a
         Resend key, which this deployment has no budget for, so the live site
-        offers Google alone. The fourth screen is real, and the code behind it
+        offers Google alone. Its screens are built and the code behind them
         ships; it turns on with one environment variable.
       </p>
     </div>
