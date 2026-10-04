@@ -1,0 +1,103 @@
+{
+  "user": "saurabhchandra",
+  "playlists": [
+    {
+      "title": "OG B-TOWN",
+      "service": "Spotify",
+      "songs": 100,
+      "cover": "https://mosaic.scdn.co/300/ab67616d00001e02675b3f7dea80153c73581e5eab67616d00001e02a2055e0b847ff66fb5206099ab67616d00001e02afbf50bfb7b032b69deabadeab67616d00001e02e7fa423de639247fed12be4a",
+      "letterboxed": false
+    },
+    {
+      "title": "Workout",
+      "service": "Spotify",
+      "songs": 4,
+      "cover": "https://mosaic.scdn.co/300/ab67616d00001e02043c4fd06c18d6c03e70c7f7ab67616d00001e024ac49cbfcbad925437b11428ab67616d00001e02932991c70eac071556deab14ab67616d00001e02b5db9fac30bd158408f1b477",
+      "letterboxed": false
+    },
+    {
+      "title": "Bhajans",
+      "service": "Spotify",
+      "songs": 37,
+      "cover": "https://mosaic.scdn.co/300/ab67616d00001e020f1033134c2593bd7f056bfaab67616d00001e020f301e35aef49b3a50b8989bab67616d00001e022639e82b33da731649faec7fab67616d00001e025182ea98b2ea623977917597",
+      "letterboxed": false
+    },
+    {
+      "title": "Hollywood",
+      "service": "Spotify",
+      "songs": 39,
+      "cover": "https://mosaic.scdn.co/300/ab67616d00001e02069a93617a916760ab88ffeaab67616d00001e026239187793c9e492e687db01ab67616d00001e028863bc11d2aa12b54f5aeb36ab67616d00001e02c820f033bd82bef4355d1563",
+      "letterboxed": false
+    },
+    {
+      "title": "(G)old",
+      "service": "Spotify",
+      "songs": 17,
+      "cover": "https://mosaic.scdn.co/300/ab67616d00001e0202ec3d2efa698e442568f4a4ab67616d00001e022ec22238c5712ef3430927f6ab67616d00001e024c8c4cf5661f458537115df1ab67616d00001e02a3249c6d32f69eb242c0cc46",
+      "letterboxed": false
+    },
+    {
+      "title": "Party",
+      "service": "YouTube",
+      "songs": 4,
+      "cover": "https://i.ytimg.com/vi/HAW6aXlx2Xg/hqdefault.jpg?sqp=-oaymwEXCOADEI4CSFryq4qpAwkIARUAAIhCGAE=&rs=AOn4CLC-uyL0f_GlBXp8DBcRYZQNxFtl4g&days_since_epoch=20719",
+      "letterboxed": true
+    },
+    {
+      "title": "2000-2020",
+      "service": "YouTube Music",
+      "songs": 52,
+      "cover": "https://i.ytimg.com/vi/MbWpPuuU1Vc/hqdefault.jpg?sqp=-oaymwEXCOADEI4CSFryq4qpAwkIARUAAIhCGAE=&rs=AOn4CLC4I3kWmYlQQ6jrQWbSGGmSodcz3A&days_since_epoch=20719",
+      "letterboxed": true
+    },
+    {
+      "title": "bus driver playlist",
+      "service": "YouTube Music",
+      "songs": 55,
+      "cover": "https://i.ytimg.com/vi/N0jnLZxYwYc/hqdefault.jpg?sqp=-oaymwEXCOADEI4CSFryq4qpAwkIARUAAIhCGAE=&rs=AOn4CLCxAW6PpvgrKdyJb8sWBo4mdhOqwQ&days_since_epoch=20719",
+      "letterboxed": true
+    }
+  ],
+  "songs": [
+    {
+      "title": "Ajab Si",
+      "artist": "KK, Vishal-Shekhar, Vishal Dadlani",
+      "time": "4:02"
+    },
+    {
+      "title": "Tumhe Jo Maine Dekha",
+      "artist": "Abhijeet, Shreya Ghoshal",
+      "time": "5:41"
+    },
+    {
+      "title": "Main Hoon Na",
+      "artist": "Sonu Nigam, Shreya Ghoshal",
+      "time": "6:01"
+    },
+    {
+      "title": "Chale Jaise Hawaien",
+      "artist": "KK, Vasundhara Das",
+      "time": "5:24"
+    },
+    {
+      "title": "Tumse Milke Dil Ka",
+      "artist": "Sonu Nigam, Sabri Brothers",
+      "time": "5:59"
+    },
+    {
+      "title": "Kal Ho Naa Ho",
+      "artist": "Shankar-Ehsaan-Loy, Sonu Nigam",
+      "time": "5:21"
+    }
+  ],
+  "urls": [
+    "https://open.spotify.com/playlist/4X9STQs4rZQjXHLlhjVaNY",
+    "https://open.spotify.com/playlist/0GaQhX8SGHbUMIlyftkJxo",
+    "https://www.youtube.com/playlist?list=PLRFsqLDIFZ-FleGAI8OZr6QPtjTnqvydQ",
+    "https://open.spotify.com/playlist/2NPz5rBIxBLFVGqulQ0bSs",
+    "https://music.youtube.com/playlist?list=PLOlMK7iP5sjE",
+    "https://open.spotify.com/playlist/4kI9Y2KcXNS0fhu9R31Inf",
+    "https://music.youtube.com/playlist?list=PLbX5hFBka5vs",
+    "https://open.spotify.com/playlist/7t5IlkrWqiGSzLGPNbfCXZ"
+  ]
+}

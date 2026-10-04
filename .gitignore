@@ -54,3 +54,6 @@ skills-lock.json
 
 # chrome-headless-shell, for promo/record.mjs
 .browsers
+
+# the showreel's bundle, soundtrack and master render, all rebuilt by promo/showreel
+promo/showreel/dist/

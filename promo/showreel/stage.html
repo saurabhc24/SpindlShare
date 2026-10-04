@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>SpindlShare showreel</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=block" rel="stylesheet" />
+<style>
+  /* The landing page's own faces, read from the app, never published. */
+  @font-face { font-family: "SR Display"; src: url("../../app/_fonts/display-midi.ttf") format("truetype"); font-weight: 500; font-display: block; }
+  @font-face { font-family: "SR Wordmark"; src: url("../../app/_fonts/display-maxi.ttf") format("truetype"); font-weight: 500; font-display: block; }
+  :root { --font-wordmark: "SR Wordmark"; --font-manrope: "Manrope"; }
+  html, body { margin: 0; width: 1920px; height: 1080px; overflow: hidden; background: #000; }
+  #stage {
+    position: relative; width: 1920px; height: 1080px; overflow: hidden;
+    background: #0e0b09; color: #f3ede3;
+    font-family: Manrope, system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased; text-rendering: geometricPrecision;
+  }
+  .world, .layer, .scene { position: absolute; inset: 0; }
+  .scene { overflow: hidden; }
+  .display { font-family: "SR Display", system-ui, sans-serif; font-weight: 500; letter-spacing: -0.028em; line-height: 0.98; }
+  .wordmark { font-family: "SR Wordmark", system-ui, sans-serif; font-weight: 500; letter-spacing: 0.02em; }
+  .tag { font-family: Manrope, sans-serif; font-weight: 800; letter-spacing: 0.16em; text-transform: uppercase; }
+  .mono { font-family: "JetBrains Mono", ui-monospace, monospace; }
+  .abs { position: absolute; }
+</style>
+</head>
+<body>
+<div id="stage"></div>
+<script src="dist/shelf.js"></script>
+<script src="dist/envelopes.js"></script>
+<script src="dist/showreel.js"></script>
+</body>
+</html>

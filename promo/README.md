@@ -1,3 +1,47 @@
+# Showreel
+
+`spindlshare-showreel.mp4`: 1920x1080, 60 fps, 64 seconds, H.264 with an
+original soundtrack.
+
+A motion piece rather than a walkthrough: nine scenes on one 120 BPM clock. A
+cold open on the real deck, the headline, the record changer, the links it
+replaces, the three steps as sleeves, the shelf, the player, the sand, and the
+back cover. Every cut, landing and word sits on a beat, because the picture and
+the music read their cues from the same file, `showreel/src/score.mjs`.
+
+## Rebuild
+
+```bash
+FFMPEG=<path to ffmpeg> node promo/showreel/render.mjs    # the film, about 25 min
+node promo/showreel/render.mjs --draft                     # 30 fps, no blur, 4 min
+node promo/showreel/preview.mjs <dir> 12.5 40.2            # stills at chosen times
+node promo/showreel/music.mjs                              # the soundtrack alone
+```
+
+Nothing needs the app running: the stage is a local page, and it reads the shelf
+from `showreel/shelf.json`, a snapshot of the showcase shelf's covers, titles,
+counts and songs.
+
+- **Frames are rendered, not recorded.** Everything on the stage is a function
+  of time: the renderer asks for time t, captures it and moves on, so a slow
+  frame costs minutes, never smoothness, and any moment can be rendered alone to
+  check it. That is also why the stage has no CSS transitions or animations:
+  they run on the browser's clock, not the film's.
+- **The turntable is the product's own.** `app/_landing/turntable-3d.ts` is
+  bundled unchanged; the build only exports the parts the module keeps private
+  (the record, the deck, the studio lighting) so the film can place its own
+  cameras. The shelf's geometry is measured off the live page.
+- **The soundtrack is synthesised** in `music.mjs`, with no samples and so no
+  licence to clear: FM electric piano, a supersaw pad, plucked arpeggios, drums,
+  vinyl crackle, a scratch and a tape stop. It also writes the cue times and a
+  spectrum per frame, which the EQ bars and pulses on screen read, so they move
+  with the actual sound. The scratch and the records turning on screen follow
+  one shared position curve.
+- **Motion blur** is three sub-frames across half of each frame, a 180° shutter,
+  averaged by ffmpeg.
+- **Two encodes.** The master (CRF 14) stays in `showreel/dist/`, which git
+  ignores; the file here is re-encoded to a size the repository can carry.
+
 # Feature video
 
 `spindlshare-feature.mp4`: 1920x1080, 30 fps, about 45 seconds, silent, H.264.
