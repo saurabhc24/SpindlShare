@@ -57,3 +57,6 @@ skills-lock.json
 
 # the showreel's bundle, soundtrack and master render, all rebuilt by promo/showreel
 promo/showreel/dist/
+
+# a re-encode of the showreel for upload limits; rebuilt with the command in promo/README.md
+promo/peerlist/*.mp4

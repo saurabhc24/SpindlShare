@@ -45,7 +45,19 @@ counts and songs.
   web copy to `showreel/dist/`, which git ignores; re-cutting the film from
   them is a separate, deliberate step.
 
-# Feature video
+# Launch assets
+
+`peerlist/`: what Peerlist's product listing asks for. `logo.png` (500x500) is
+a record with the display face's S on a ruby label; the wordmark face's S reads
+as an 8 on its own. The four covers (1200x630) are lossless stills from the
+showreel stage, cropped from 16:9. `demo.mp4` is the edited showreel brought
+under the 100 MB upload limit, and is not committed:
+
+```bash
+ffmpeg -i promo/spindlshare-showreel.mp4 -c:v libx264 -preset slow -b:v 10500k -pass 1 -an -f mp4 NUL
+ffmpeg -i promo/spindlshare-showreel.mp4 -c:v libx264 -preset slow -b:v 10500k -maxrate 16M   -bufsize 21M -pass 2 -c:a copy -movflags +faststart promo/peerlist/demo.mp4
+```
+
 
 `spindlshare-feature.mp4`: 1920x1080, 30 fps, about 45 seconds, silent, H.264.
 
