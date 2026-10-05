@@ -18,6 +18,14 @@ export const metadata: Metadata = {
   },
   description:
     "Everything you've got spinning, on one shelf. Share your Spotify and YouTube playlists from a single link.",
+  // Without these a shared link shows as bare text; the image is app/opengraph-image.jpg.
+  openGraph: {
+    type: "website",
+    siteName: "SpindlShare",
+    title: "SpindlShare",
+    description: "Everything you've got spinning, on one shelf. Share your Spotify and YouTube playlists from a single link.",
+  },
+  twitter: { card: "summary_large_image" },
 };
 
 /**

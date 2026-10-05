@@ -13,7 +13,16 @@ import { ShelfDemo } from "./_landing/shelf-demo";
 import { getShowcase, SHOWCASE_USERNAME } from "./_landing/showcase";
 import { Steps } from "./_landing/steps";
 
-export const metadata: Metadata = { alternates: { canonical: "/" } };
+const SHARE_TITLE = "SpindlShare: one link for every playlist you've made";
+const SHARE_DESCRIPTION =
+  "Paste your Spotify and YouTube Music playlists, pick the ones to show, and share a shelf people can actually play.";
+
+// Spelled out in full: a page's openGraph replaces the layout's rather than merging with it.
+export const metadata: Metadata = {
+  alternates: { canonical: "/" },
+  openGraph: { type: "website", siteName: "SpindlShare", url: "/", title: SHARE_TITLE, description: SHARE_DESCRIPTION },
+  twitter: { card: "summary_large_image", title: SHARE_TITLE, description: SHARE_DESCRIPTION },
+};
 
 // Built from a real shelf, so it refreshes hourly instead of querying on every visit.
 export const revalidate = 3600;

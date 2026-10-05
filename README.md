@@ -181,6 +181,12 @@ proxy.ts                          optimistic auth gate (Next 16's renamed middle
   the player turntable spins up and lowers its arm when a song plays; the
   records in the step sleeves are the same model, rendered once into images
   rather than kept as live scenes.
+- **A shared spindlshare.com link shows a card.** `app/opengraph-image.jpg`
+  (and an identical `twitter-image.jpg`) is the showreel's title card with the
+  wordmark and address, kept a JPEG under 100 KB because WhatsApp drops preview
+  images much over 300 KB. It covers every page without its own; profiles
+  generate theirs. The home page spells out its full `openGraph` and `twitter`
+  fields, since a page's `openGraph` replaces the layout's rather than merging.
 - **Every "Claim your link" leads to `/signup`**, the original landing page,
   which keeps its own sign-in card. A name typed on the home page is checked
   live with the same rules and endpoint as onboarding, rides along in
