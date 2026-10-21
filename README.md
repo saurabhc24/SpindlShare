@@ -383,7 +383,8 @@ Playlists are a deck of covers receding up and to the right, scrolled through
 rather than scrolled past. Three states, one click apart: stacked, lifted, then
 the provider's player over the playlist's songs. A lifted card moves to the centre
 with its title and song count beneath it, and the stack behind fades and blurs so
-the one card reads alone. Clicking off a lifted card returns it to the stack.
+the one card reads alone. Clicking anywhere off it, blurred cards included,
+returns it to the stack.
 
 The scroll is driven from wheel and touch rather than a scrollbar, because a
 scrollbar needs a tall spacer to scroll against and can still hit its end; the

@@ -398,6 +398,8 @@ export function Deck({ items, address }: { items: ShowcaseItem[]; address?: stri
                     ? 1
                     : edgeFade(depth, deepestDrawn),
                 filter: dimmed ? `blur(${Math.round(10 * scale)}px)` : "blur(0px)",
+                // Blurred cards are background: a tap passes to the stage, which drops the lift.
+                pointerEvents: dimmed ? "none" : undefined,
                 transitionProperty: "transform, opacity, filter",
               }}
             >
