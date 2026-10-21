@@ -380,9 +380,10 @@ username after 30 days and walk the count backwards.
 ### The public profile
 
 Playlists are a deck of covers receding up and to the right, scrolled through
-rather than scrolled past. Three states, one click apart: stacked, lifted (title,
-service and track count), then the provider's player over the playlist's songs.
-Clicking off a lifted card returns it to the stack.
+rather than scrolled past. Three states, one click apart: stacked, lifted, then
+the provider's player over the playlist's songs. A lifted card moves to the centre
+with its title and song count beneath it, and the stack behind fades and blurs so
+the one card reads alone. Clicking off a lifted card returns it to the stack.
 
 The scroll is driven from wheel and touch rather than a scrollbar, because a
 scrollbar needs a tall spacer to scroll against and can still hit its end; the
@@ -452,7 +453,8 @@ The spine is the case's only label: the title reading up, the service's mark at
 its foot, white on black so it reads on any cover. Nothing is printed over the
 art, so the cards behind show their covers whole and are named only once they
 come to the front. It is CSS on the same box, so the deck's geometry and motion
-are untouched.
+are untouched. The lifted caption hangs below the case for the same reason, and
+rides in the card's own transform so it travels with the lift.
 
 The open playlist is a modal over the whole page, so it stacks above the profile
 chrome rather than under it. At its old z-index the header, bio and footer -- all

@@ -12,9 +12,9 @@ import type { ShowcaseItem } from "./playlist-item";
 /**
  * The playlist deck: covers stacked along a diagonal, scrolled through endlessly.
  *
- * Three states per card, one click apart -- stacked, lifted (title, tracks and
- * source), then open (the provider's player). Clicking off a lifted card returns
- * it to the stack.
+ * Three states per card, one click apart -- stacked, lifted (centred, captioned,
+ * the rest blurred), then open (the provider's player). Clicking off a lifted
+ * card returns it to the stack.
  */
 
 const PROVIDER_DOT: Record<MusicProvider, string> = {
@@ -391,12 +391,14 @@ export function Deck({ items, address }: { items: ShowcaseItem[]; address?: stri
                   : Math.round(1000 - Math.abs(depth) * 10) + (isLifted ? 500 : 0),
                 // An orbiting card stays solid -- the old exit fade was there to
                 // hide a teleport, and the arc is the thing to watch now.
+                // 70% blurred out behind a lifted card: faded to 0.3 and softened.
                 opacity: dimmed
-                  ? 0.45
+                  ? 0.3
                   : orbit
                     ? 1
                     : edgeFade(depth, deepestDrawn),
-                transitionProperty: "transform, opacity",
+                filter: dimmed ? `blur(${Math.round(10 * scale)}px)` : "blur(0px)",
+                transitionProperty: "transform, opacity, filter",
               }}
             >
               {/* The nearest card, by the same wrapped depth that positions it --
@@ -406,6 +408,19 @@ export function Deck({ items, address }: { items: ShowcaseItem[]; address?: stri
                 lifted={isLifted}
                 labelScale={scale}
               />
+              {/* Shown only once lifted; the spine's sr-only text already reads it out. */}
+              <div
+                aria-hidden="true"
+                className="pointer-events-none absolute inset-x-0 top-full mt-5 text-center text-white transition-opacity duration-300"
+                style={{ opacity: isLifted ? 1 : 0, transitionDelay: isLifted ? "200ms" : "0ms" }}
+              >
+                <p className="line-clamp-2 text-lg leading-snug font-bold">{item.title}</p>
+                {item.trackCount != null && (
+                  <p className="mt-1 text-sm font-light text-white/60">
+                    {item.trackCount} {item.trackCount === 1 ? "song" : "songs"}
+                  </p>
+                )}
+              </div>
             </div>
           );
         })}
