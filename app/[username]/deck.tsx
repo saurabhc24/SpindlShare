@@ -444,27 +444,94 @@ function Card({
   // before it starts fading, plus a tail.
   const labelBand = Math.round(50 + 14 * labelScale);
   return (
+    // A CD jewel case: clear plastic round a paper insert, hinge on the left.
     <div
-      className="relative size-full overflow-hidden rounded-[10px] transition-shadow duration-500"
+      className="relative size-full overflow-hidden rounded-[5px] transition-shadow duration-500"
       style={{
-        background: item.coverImageUrl ? "#0a0806" : coverGradient(item.id),
+        background: "linear-gradient(to right, rgba(255,255,255,0.1), rgba(255,255,255,0.04))",
+        border: `1px solid rgba(255,255,255,${lifted ? 0.4 : 0.26})`,
         boxShadow: lifted
           ? "0 40px 90px rgba(0,0,0,0.7)"
           : "0 18px 44px rgba(0,0,0,0.5)",
-        outline: lifted ? "1px solid rgba(255,255,255,0.22)" : "none",
       }}
     >
-      {item.coverImageUrl && (
-        /* eslint-disable-next-line @next/next/no-img-element */
-        <img
-          src={item.coverImageUrl}
-          alt=""
-          className="size-full object-cover"
-          draggable={false}
-        />
-      )}
+      {/* The hinge: ridged clear plastic. */}
+      <span
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-y-0 left-0 w-[7%]"
+        style={{
+          background:
+            "linear-gradient(to right, rgba(255,255,255,0.24), rgba(255,255,255,0.05) 40%, rgba(255,255,255,0.18) 55%, rgba(255,255,255,0.04))",
+        }}
+      />
+      {/* The insert: a black spine with the title, then the cover. */}
+      <div className="absolute top-[3.5%] right-[3%] bottom-[3.5%] left-[7%] flex overflow-hidden rounded-[2px]">
+        <div className="flex h-full w-[11%] shrink-0 items-center justify-center overflow-hidden bg-[#0b0a09]">
+          <span
+            className="truncate font-extrabold tracking-[0.12em] text-white/85 uppercase"
+            style={{ writingMode: "vertical-rl", transform: "rotate(180deg)", maxHeight: "92%", fontSize: Math.max(7, Math.round(9 * labelScale)) }}
+          >
+            {item.title}
+          </span>
+        </div>
+        <div
+          className="relative h-full flex-1 overflow-hidden"
+          style={{ background: item.coverImageUrl ? "#0a0806" : coverGradient(item.id) }}
+        >
+          {item.coverImageUrl && (
+            /* eslint-disable-next-line @next/next/no-img-element */
+            <img
+              src={item.coverImageUrl}
+              alt=""
+              className="size-full object-cover"
+              draggable={false}
+            />
+          )}
 
-      {/* The detail panel belongs to the lifted state only. It is always in the
+          {/* Every stacked card names itself, pinned to the top-right corner. The
+              corner is the strip each card still shows past the one in front, and
+              anchoring right means the text does not shift as a card advances. */}
+          {!lifted && (
+            <>
+              {/* Two layers: a band that holds the label's own row at full strength,
+                  and a corner wash that fades it into the cover instead of edging. */}
+              <span
+                aria-hidden="true"
+                className="pointer-events-none absolute inset-x-0 top-0"
+                style={{
+                  // Solid to the label's baseline, then a short tail. Fading across
+                  // the whole band left the text's own row barely darkened.
+                  height: labelBand,
+                  background:
+                    "linear-gradient(to bottom, rgba(0,0,0,0.82) 0%, rgba(0,0,0,0.8) 58%, rgba(0,0,0,0.42) 78%, rgba(0,0,0,0) 100%)",
+                }}
+              />
+              <span
+                aria-hidden="true"
+                className="pointer-events-none absolute inset-0"
+                style={{
+                  background:
+                    "radial-gradient(70% 42% at 100% 0%, rgba(0,0,0,0.4) 0%, rgba(0,0,0,0.16) 60%, rgba(0,0,0,0) 100%)",
+                }}
+              />
+              <p
+                className="absolute top-0 right-0 truncate px-3 py-2.5 text-right font-extrabold text-white uppercase"
+                style={{
+                  // A width cap, not a position: the label grows leftward from the
+                  // fixed right edge and truncates if the strip is too narrow.
+                  maxWidth: Math.round(exposed),
+                  // Scales with the card so it holds its proportion on a phone.
+                  fontSize: Math.max(10, Math.round(14 * labelScale)),
+                  textShadow: "0 1px 3px rgba(0,0,0,0.55)",
+                }}
+              >
+                {item.title}
+              </p>
+            </>
+          )}
+        </div>
+      </div>
+      {/* The detail panel belongs to the lifted state only, across the whole case. It is always in the
           tree so it can fade rather than pop. */}
       <div
         aria-hidden={!lifted}
@@ -494,48 +561,16 @@ function Card({
           )}
         </p>
       </div>
-
-      {/* Every stacked card names itself, pinned to the top-right corner. The
-          corner is the strip each card still shows past the one in front, and
-          anchoring right means the text does not shift as a card advances. */}
-      {!lifted && (
-        <>
-          {/* Two layers: a band that holds the label's own row at full strength,
-              and a corner wash that fades it into the cover instead of edging. */}
-          <span
-            aria-hidden="true"
-            className="pointer-events-none absolute inset-x-0 top-0"
-            style={{
-              // Solid to the label's baseline, then a short tail. Fading across
-              // the whole band left the text's own row barely darkened.
-              height: labelBand,
-              background:
-                "linear-gradient(to bottom, rgba(0,0,0,0.82) 0%, rgba(0,0,0,0.8) 58%, rgba(0,0,0,0.42) 78%, rgba(0,0,0,0) 100%)",
-            }}
-          />
-          <span
-            aria-hidden="true"
-            className="pointer-events-none absolute inset-0"
-            style={{
-              background:
-                "radial-gradient(70% 42% at 100% 0%, rgba(0,0,0,0.4) 0%, rgba(0,0,0,0.16) 60%, rgba(0,0,0,0) 100%)",
-            }}
-          />
-          <p
-            className="absolute top-0 right-0 truncate px-3 py-2.5 text-right font-extrabold text-white uppercase"
-            style={{
-              // A width cap, not a position: the label grows leftward from the
-              // fixed right edge and truncates if the strip is too narrow.
-              maxWidth: Math.round(exposed),
-              // Scales with the card so it holds its proportion on a phone.
-              fontSize: Math.max(10, Math.round(14 * labelScale)),
-              textShadow: "0 1px 3px rgba(0,0,0,0.55)",
-            }}
-          >
-            {item.title}
-          </p>
-        </>
-      )}
+      {/* Light catching the plastic, over everything inside it. */}
+      <span
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0"
+        style={{
+          mixBlendMode: "screen",
+          background:
+            "linear-gradient(118deg, rgba(255,255,255,0.3) 0%, rgba(255,255,255,0.08) 20%, rgba(255,255,255,0) 36%, rgba(255,255,255,0) 74%, rgba(255,255,255,0.1) 100%)",
+        }}
+      />
     </div>
   );
 }

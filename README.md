@@ -452,6 +452,12 @@ Not the title -- two playlists called "Liked Songs" would come out identical --
 and not a simple `hash * 31 % 360`, which barely moved between neighbouring cuids
 and gave playlists created seconds apart the same colour.
 
+Each card is drawn as a CD jewel case: clear plastic with a ridged hinge, the
+cover set inside as the insert behind a black spine that carries the title, and
+a glare across it all. It is CSS on the same box, so the deck's geometry and
+motion are untouched. The lifted card's details span the whole case rather than
+the insert, which alone left too little room for "Spotify · 279 songs".
+
 Labels are pinned to each card's top-right corner: that corner is the strip a
 card still shows past the one in front of it, and anchoring right means the title
 does not slide as a card advances to the front.
