@@ -441,26 +441,18 @@ span instead pushed the front card off the *left* edge, where it was clipped. A
 lifted card translates to the stage centre, which is what keeps it centred on a
 narrow screen.
 
-Each label sits over two scrims: a band that holds its own row dark, and a corner
-wash that fades that band into the cover rather than leaving a hard edge. A text
-shadow alone was not enough -- on a white cover the title measured 1.6:1 against
-its ground, which is illegible. It now clears 5.5:1 on pure white and 12:1 on a
-generated cover.
-
 Covers with no artwork take a colour hashed from the playlist's id with FNV-1a.
 Not the title -- two playlists called "Liked Songs" would come out identical --
 and not a simple `hash * 31 % 360`, which barely moved between neighbouring cuids
 and gave playlists created seconds apart the same colour.
 
 Each card is drawn as a CD jewel case: clear plastic with a ridged hinge, the
-cover set inside as the insert behind a black spine that carries the title, and
-a glare across it all. It is CSS on the same box, so the deck's geometry and
-motion are untouched. The lifted card's details span the whole case rather than
-the insert, which alone left too little room for "Spotify · 279 songs".
-
-Labels are pinned to each card's top-right corner: that corner is the strip a
-card still shows past the one in front of it, and anchoring right means the title
-does not slide as a card advances to the front.
+cover set inside as the insert behind a black spine, and a glare across it all.
+The spine is the case's only label: the title reading up, the service's mark at
+its foot, white on black so it reads on any cover. Nothing is printed over the
+art, so the cards behind show their covers whole and are named only once they
+come to the front. It is CSS on the same box, so the deck's geometry and motion
+are untouched.
 
 The open playlist is a modal over the whole page, so it stacks above the profile
 chrome rather than under it. At its old z-index the header, bio and footer -- all

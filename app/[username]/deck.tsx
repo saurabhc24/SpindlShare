@@ -213,10 +213,6 @@ export function Deck({ items, address }: { items: ShowcaseItem[]; address?: stri
   // meant for a full one.
   const frontInset = (FRONT_INSET / VISIBLE) * runLength;
 
-  // The card in front sits one step up and one step right, so a background card
-  // shows an L of that width. The label lives in the top-right of it.
-  const exposedWidth = cardSize - stepX;
-
   // One gesture advances exactly one card, and the motion always plays out.
   // Tracking the finger left a card frozen part-way round its orbit whenever a
   // scroll stopped short.
@@ -408,7 +404,6 @@ export function Deck({ items, address }: { items: ShowcaseItem[]; address?: stri
               <Card
                 item={item}
                 lifted={isLifted}
-                exposed={exposedWidth}
                 labelScale={scale}
               />
             </div>
@@ -430,19 +425,13 @@ export function Deck({ items, address }: { items: ShowcaseItem[]; address?: stri
 function Card({
   item,
   lifted,
-  exposed,
   labelScale,
 }: {
   item: ShowcaseItem;
   lifted: boolean;
-  /** Width of the strip this card still shows past the one in front of it. */
-  exposed: number;
-  /** Card size relative to the design's 184px, so the label scales with it. */
+  /** Card size relative to the design's 184px, so the spine scales with it. */
   labelScale: number;
 }) {
-  // The label sits 16px down and is ~24px tall, so the band must clear ~40px
-  // before it starts fading, plus a tail.
-  const labelBand = Math.round(50 + 14 * labelScale);
   return (
     // A CD jewel case: clear plastic round a paper insert, hinge on the left.
     <div
@@ -464,14 +453,23 @@ function Card({
             "linear-gradient(to right, rgba(255,255,255,0.24), rgba(255,255,255,0.05) 40%, rgba(255,255,255,0.18) 55%, rgba(255,255,255,0.04))",
         }}
       />
-      {/* The insert: a black spine with the title, then the cover. */}
+      {/* The insert: a black spine with the title and the service's mark, then the cover. */}
       <div className="absolute top-[3.5%] right-[3%] bottom-[3.5%] left-[7%] flex overflow-hidden rounded-[2px]">
-        <div className="flex h-full w-[11%] shrink-0 items-center justify-center overflow-hidden bg-[#0b0a09]">
+        <div className="flex h-full w-[11%] shrink-0 flex-col items-center gap-[5%] overflow-hidden bg-[#0b0a09] py-[10%]">
           <span
-            className="truncate font-extrabold tracking-[0.12em] text-white/85 uppercase"
-            style={{ writingMode: "vertical-rl", transform: "rotate(180deg)", maxHeight: "92%", fontSize: Math.max(7, Math.round(9 * labelScale)) }}
+            className="min-h-0 flex-1 truncate text-center font-extrabold tracking-[0.12em] text-white/85 uppercase"
+            style={{ writingMode: "vertical-rl", transform: "rotate(180deg)", fontSize: Math.max(7, Math.round(9 * labelScale)) }}
           >
             {item.title}
+          </span>
+          <ProviderIcon
+            provider={item.provider}
+            className="shrink-0"
+            style={{ color: PROVIDER_DOT[item.provider], width: Math.max(8, Math.round(11 * labelScale)), height: Math.max(8, Math.round(11 * labelScale)) }}
+          />
+          <span className="sr-only">
+            {item.providerLabel}
+            {item.trackCount != null && `, ${item.trackCount} songs`}
           </span>
         </div>
         <div
@@ -487,79 +485,7 @@ function Card({
               draggable={false}
             />
           )}
-
-          {/* Every stacked card names itself, pinned to the top-right corner. The
-              corner is the strip each card still shows past the one in front, and
-              anchoring right means the text does not shift as a card advances. */}
-          {!lifted && (
-            <>
-              {/* Two layers: a band that holds the label's own row at full strength,
-                  and a corner wash that fades it into the cover instead of edging. */}
-              <span
-                aria-hidden="true"
-                className="pointer-events-none absolute inset-x-0 top-0"
-                style={{
-                  // Solid to the label's baseline, then a short tail. Fading across
-                  // the whole band left the text's own row barely darkened.
-                  height: labelBand,
-                  background:
-                    "linear-gradient(to bottom, rgba(0,0,0,0.82) 0%, rgba(0,0,0,0.8) 58%, rgba(0,0,0,0.42) 78%, rgba(0,0,0,0) 100%)",
-                }}
-              />
-              <span
-                aria-hidden="true"
-                className="pointer-events-none absolute inset-0"
-                style={{
-                  background:
-                    "radial-gradient(70% 42% at 100% 0%, rgba(0,0,0,0.4) 0%, rgba(0,0,0,0.16) 60%, rgba(0,0,0,0) 100%)",
-                }}
-              />
-              <p
-                className="absolute top-0 right-0 truncate px-3 py-2.5 text-right font-extrabold text-white uppercase"
-                style={{
-                  // A width cap, not a position: the label grows leftward from the
-                  // fixed right edge and truncates if the strip is too narrow.
-                  maxWidth: Math.round(exposed),
-                  // Scales with the card so it holds its proportion on a phone.
-                  fontSize: Math.max(10, Math.round(14 * labelScale)),
-                  textShadow: "0 1px 3px rgba(0,0,0,0.55)",
-                }}
-              >
-                {item.title}
-              </p>
-            </>
-          )}
         </div>
-      </div>
-      {/* The detail panel belongs to the lifted state only, across the whole case. It is always in the
-          tree so it can fade rather than pop. */}
-      <div
-        aria-hidden={!lifted}
-        className="absolute inset-x-0 top-0 flex flex-col items-end gap-1 p-4 text-right transition-opacity duration-300"
-        style={{
-          opacity: lifted ? 1 : 0,
-          background:
-            "linear-gradient(to bottom, rgba(0,0,0,0.92) 20%, rgba(0,0,0,0.55) 60%, transparent)",
-        }}
-      >
-        <p className="max-w-full truncate text-base font-bold text-white">
-          {item.title}
-        </p>
-        <p className="flex items-center justify-end gap-2 text-xs text-[#c8c8c8]">
-          {/* The service's own mark rather than a coloured dot. */}
-          <ProviderIcon
-            provider={item.provider}
-            className="size-3.5 shrink-0"
-            style={{ color: PROVIDER_DOT[item.provider] }}
-          />
-          <span className="truncate">{item.providerLabel}</span>
-          {item.trackCount != null && (
-            <>
-              <span aria-hidden="true">·</span>
-              <span className="shrink-0">{item.trackCount} songs</span>
-            </>
-          )}
-        </p>
       </div>
       {/* Light catching the plastic, over everything inside it. */}
       <span
